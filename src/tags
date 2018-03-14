@@ -1,0 +1,250 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+BONUS_BLINK_INTERVAL_MS	play_state.h	66;"	d
+BONUS_LIFETIME_INTERVAL_MS	play_state.h	67;"	d
+Bonus	play_state.h	/^typedef struct Bonus{$/;"	s
+Bonus	play_state.h	/^}Bonus;$/;"	t	typeref:struct:Bonus
+BonusHandlerFuncPtr	play_state.h	/^typedef void (*BonusHandlerFuncPtr)(Tank *pTank);$/;"	t
+Bullet	play_state.h	/^typedef struct Bullet{$/;"	s
+Bullet	play_state.h	/^}Bullet;$/;"	t	typeref:struct:Bullet
+Context	global_defs.h	/^typedef struct Context{$/;"	s
+Context	global_defs.h	/^}Context;$/;"	t	typeref:struct:Context
+DEFAULT_BULLET_SPEED	play_state.h	11;"	d
+DEFAULT_FIRE_HOLDOUT	play_state.h	12;"	d
+DEFAULT_TANK_SPEED	play_state.h	10;"	d
+EXE	Makefile	/^EXE := $(EXE_DBG)$/;"	m
+EXE	Makefile	/^EXE := $(EXE_RELEASE)$/;"	m
+EXE_DBG	Makefile	/^EXE_DBG := Tank2018_dbg$/;"	m
+EXE_LOCATION	Makefile	/^EXE_LOCATION:= ..$/;"	m
+EXE_RELEASE	Makefile	/^EXE_RELEASE := Tank2018$/;"	m
+FE_FIRE	global_defs.h	/^enum FireEvent {FE_NONE, FE_FIRE};$/;"	e	enum:FireEvent
+FE_NONE	global_defs.h	/^enum FireEvent {FE_NONE, FE_FIRE};$/;"	e	enum:FireEvent
+FONT_PATH	resource_mgr.h	11;"	d
+FPS	global_defs.h	15;"	d
+FSM	fsm.h	/^typedef struct FSM{$/;"	s
+FSM	fsm.h	/^}FSM;$/;"	t	typeref:struct:FSM
+FSMState	fsm.h	/^typedef struct FSMState{$/;"	s
+FSMState	fsm.h	/^}FSMState;$/;"	t	typeref:struct:FSMState
+FSMStateId	fsm.h	/^enum FSMStateId {FSM_MENU_STATE, FSM_PLAY_STATE, FSM_SCORE_STATE};$/;"	g
+FSM_H	fsm.h	2;"	d
+FSM_MENU_STATE	fsm.h	/^enum FSMStateId {FSM_MENU_STATE, FSM_PLAY_STATE, FSM_SCORE_STATE};$/;"	e	enum:FSMStateId
+FSM_PLAY_STATE	fsm.h	/^enum FSMStateId {FSM_MENU_STATE, FSM_PLAY_STATE, FSM_SCORE_STATE};$/;"	e	enum:FSMStateId
+FSM_SCORE_STATE	fsm.h	/^enum FSMStateId {FSM_MENU_STATE, FSM_PLAY_STATE, FSM_SCORE_STATE};$/;"	e	enum:FSMStateId
+FSM_STATE_FUNC	fsm.h	/^typedef void (*FSM_STATE_FUNC)(void);$/;"	t
+FireEvent	global_defs.h	/^enum FireEvent {FE_NONE, FE_FIRE};$/;"	g
+GLOBAL_DEFS_H	global_defs.h	2;"	d
+Gameplay	global_defs.h	/^typedef struct Gameplay{$/;"	s
+Gameplay	global_defs.h	/^}Gameplay;$/;"	t	typeref:struct:Gameplay
+IS_TIMER_TICKING	timer.h	26;"	d
+Level	global_defs.h	/^    int Level;$/;"	m	struct:Gameplay
+MAX_BULLETS	play_state.h	7;"	d
+MAX_FSM_STATES	fsm.h	4;"	d
+MAX_PATH_LEN	resource_mgr.h	7;"	d
+MAX_SCORE_LABELS	play_state.h	13;"	d
+MAX_TANKS	play_state.h	8;"	d
+MAX_TERRAIN_TILES	play_state.h	9;"	d
+MAX_TEX_RESOURCES	resource_mgr.h	8;"	d
+ME_DOWN	global_defs.h	/^enum MoveEvent {ME_STOP, ME_LEFT, ME_DOWN, ME_UP, ME_RIGHT};$/;"	e	enum:MoveEvent
+ME_LEFT	global_defs.h	/^enum MoveEvent {ME_STOP, ME_LEFT, ME_DOWN, ME_UP, ME_RIGHT};$/;"	e	enum:MoveEvent
+ME_RIGHT	global_defs.h	/^enum MoveEvent {ME_STOP, ME_LEFT, ME_DOWN, ME_UP, ME_RIGHT};$/;"	e	enum:MoveEvent
+ME_STOP	global_defs.h	/^enum MoveEvent {ME_STOP, ME_LEFT, ME_DOWN, ME_UP, ME_RIGHT};$/;"	e	enum:MoveEvent
+ME_UP	global_defs.h	/^enum MoveEvent {ME_STOP, ME_LEFT, ME_DOWN, ME_UP, ME_RIGHT};$/;"	e	enum:MoveEvent
+MoveEvent	global_defs.h	/^enum MoveEvent {ME_STOP, ME_LEFT, ME_DOWN, ME_UP, ME_RIGHT};$/;"	g
+OBJS	Makefile	/^OBJS:=$(SRC:.c=.o)$/;"	m
+PLAY_STATE_H	play_state.h	2;"	d
+Player	play_state.h	/^typedef struct Player{$/;"	s
+Player	play_state.h	/^}Player;$/;"	t	typeref:struct:Player
+RESOURCE_MGR_H	resource_mgr.h	2;"	d
+RESOURCE_PATH	resource_mgr.h	9;"	d
+ResourceMgr	resource_mgr.h	/^typedef struct ResourceMgr{$/;"	s
+ResourceMgr	resource_mgr.h	/^}ResourceMgr;$/;"	t	typeref:struct:ResourceMgr
+SCENE_HEIGHT	global_defs.h	14;"	d
+SCENE_TOP_LEFT_X	global_defs.h	11;"	d
+SCENE_TOP_LEFT_Y	global_defs.h	12;"	d
+SCENE_WIDTH	global_defs.h	13;"	d
+SCORE_LABEL_INTERVAL_MSEC	play_state.h	14;"	d
+SPRITE_PATH	resource_mgr.h	10;"	d
+SRC	Makefile	/^SRC := main.c resource_mgr.c play_state.c util.c$/;"	m
+ScoreLabel	play_state.h	/^typedef struct ScoreLabel{$/;"	s
+ScoreLabel	play_state.h	/^}ScoreLabel;$/;"	t	typeref:struct:ScoreLabel
+TANK_ID_ENEMY	play_state.h	/^enum TankID {TANK_ID_PLAYER1, TANK_ID_PLAYER2, TANK_ID_ENEMY};$/;"	e	enum:TankID
+TANK_ID_PLAYER1	play_state.h	/^enum TankID {TANK_ID_PLAYER1, TANK_ID_PLAYER2, TANK_ID_ENEMY};$/;"	e	enum:TankID
+TANK_ID_PLAYER2	play_state.h	/^enum TankID {TANK_ID_PLAYER1, TANK_ID_PLAYER2, TANK_ID_ENEMY};$/;"	e	enum:TankID
+TERRAIN_BRICK	play_state.h	/^enum TerrainType {TERRAIN_NONE, TERRAIN_SHIELD, TERRAIN_FOREST, TERRAIN_WATER, TERRAIN_ICE, TERRAIN_BRICK, TERRAIN_EAGLE};$/;"	e	enum:TerrainType
+TERRAIN_EAGLE	play_state.h	/^enum TerrainType {TERRAIN_NONE, TERRAIN_SHIELD, TERRAIN_FOREST, TERRAIN_WATER, TERRAIN_ICE, TERRAIN_BRICK, TERRAIN_EAGLE};$/;"	e	enum:TerrainType
+TERRAIN_FOREST	play_state.h	/^enum TerrainType {TERRAIN_NONE, TERRAIN_SHIELD, TERRAIN_FOREST, TERRAIN_WATER, TERRAIN_ICE, TERRAIN_BRICK, TERRAIN_EAGLE};$/;"	e	enum:TerrainType
+TERRAIN_ICE	play_state.h	/^enum TerrainType {TERRAIN_NONE, TERRAIN_SHIELD, TERRAIN_FOREST, TERRAIN_WATER, TERRAIN_ICE, TERRAIN_BRICK, TERRAIN_EAGLE};$/;"	e	enum:TerrainType
+TERRAIN_NONE	play_state.h	/^enum TerrainType {TERRAIN_NONE, TERRAIN_SHIELD, TERRAIN_FOREST, TERRAIN_WATER, TERRAIN_ICE, TERRAIN_BRICK, TERRAIN_EAGLE};$/;"	e	enum:TerrainType
+TERRAIN_SHIELD	play_state.h	/^enum TerrainType {TERRAIN_NONE, TERRAIN_SHIELD, TERRAIN_FOREST, TERRAIN_WATER, TERRAIN_ICE, TERRAIN_BRICK, TERRAIN_EAGLE};$/;"	e	enum:TerrainType
+TERRAIN_WATER	play_state.h	/^enum TerrainType {TERRAIN_NONE, TERRAIN_SHIELD, TERRAIN_FOREST, TERRAIN_WATER, TERRAIN_ICE, TERRAIN_BRICK, TERRAIN_EAGLE};$/;"	e	enum:TerrainType
+TEX_ID_BONUS_BOMB	resource_mgr.h	47;"	d
+TEX_ID_BONUS_CLOCK	resource_mgr.h	46;"	d
+TEX_ID_BONUS_GUN	resource_mgr.h	48;"	d
+TEX_ID_BONUS_HELMET	resource_mgr.h	45;"	d
+TEX_ID_BONUS_SHIP	resource_mgr.h	44;"	d
+TEX_ID_BONUS_SHOVEL	resource_mgr.h	43;"	d
+TEX_ID_BONUS_STAR	resource_mgr.h	41;"	d
+TEX_ID_BONUS_TANK	resource_mgr.h	42;"	d
+TEX_ID_BRICK	resource_mgr.h	31;"	d
+TEX_ID_BULLET	resource_mgr.h	26;"	d
+TEX_ID_DEAD_EAGLE	resource_mgr.h	34;"	d
+TEX_ID_EAGLE	resource_mgr.h	33;"	d
+TEX_ID_ENEMY_LEVEL1	resource_mgr.h	22;"	d
+TEX_ID_ENEMY_LEVEL2	resource_mgr.h	23;"	d
+TEX_ID_ENEMY_LEVEL3	resource_mgr.h	24;"	d
+TEX_ID_ENEMY_LEVEL4	resource_mgr.h	25;"	d
+TEX_ID_FOREST	resource_mgr.h	28;"	d
+TEX_ID_GAMEOVER_FONT	resource_mgr.h	35;"	d
+TEX_ID_ICE	resource_mgr.h	30;"	d
+TEX_ID_PLAYER1_LEVEL1	resource_mgr.h	14;"	d
+TEX_ID_PLAYER1_LEVEL2	resource_mgr.h	15;"	d
+TEX_ID_PLAYER1_LEVEL3	resource_mgr.h	16;"	d
+TEX_ID_PLAYER1_LEVEL4	resource_mgr.h	17;"	d
+TEX_ID_PLAYER2_LEVEL1	resource_mgr.h	18;"	d
+TEX_ID_PLAYER2_LEVEL2	resource_mgr.h	19;"	d
+TEX_ID_PLAYER2_LEVEL3	resource_mgr.h	20;"	d
+TEX_ID_PLAYER2_LEVEL4	resource_mgr.h	21;"	d
+TEX_ID_PLAY_FONT	resource_mgr.h	27;"	d
+TEX_ID_SCORE_100	resource_mgr.h	36;"	d
+TEX_ID_SCORE_200	resource_mgr.h	37;"	d
+TEX_ID_SCORE_300	resource_mgr.h	38;"	d
+TEX_ID_SCORE_400	resource_mgr.h	39;"	d
+TEX_ID_SCORE_500	resource_mgr.h	40;"	d
+TEX_ID_SHIELD	resource_mgr.h	32;"	d
+TEX_ID_WATER	resource_mgr.h	29;"	d
+TIMER_H	timer.h	2;"	d
+TIMER_SET	timer.h	16;"	d
+Tank	play_state.h	/^typedef struct Tank{$/;"	s
+Tank	play_state.h	/^}Tank;$/;"	t	typeref:struct:Tank
+TankID	play_state.h	/^enum TankID {TANK_ID_PLAYER1, TANK_ID_PLAYER2, TANK_ID_ENEMY};$/;"	g
+TerrainTile	play_state.h	/^typedef struct TerrainTile{$/;"	s
+TerrainTile	play_state.h	/^}TerrainTile;$/;"	t	typeref:struct:TerrainTile
+TerrainType	play_state.h	/^enum TerrainType {TERRAIN_NONE, TERRAIN_SHIELD, TERRAIN_FOREST, TERRAIN_WATER, TERRAIN_ICE, TERRAIN_BRICK, TERRAIN_EAGLE};$/;"	g
+TexTableEntry	resource_mgr.h	/^typedef struct TexTableEntry{$/;"	s
+TexTableEntry	resource_mgr.h	/^}TexTableEntry;$/;"	t	typeref:struct:TexTableEntry
+Timer	timer.h	/^typedef struct Timer{$/;"	s
+Timer	timer.h	/^}Timer;$/;"	t	typeref:struct:Timer
+UTIL_H	util.h	2;"	d
+WND_HEIGHT	global_defs.h	10;"	d
+WND_TOP_LEFT_X	global_defs.h	7;"	d
+WND_TOP_LEFT_Y	global_defs.h	8;"	d
+WND_WIDTH	global_defs.h	9;"	d
+activateScoreLabel	play_state.c	/^bool activateScoreLabel(Tank *pTank)$/;"	f
+angle	play_state.h	/^    float angle;$/;"	m	struct:Bullet
+angle	play_state.h	/^    float angle;$/;"	m	struct:Tank
+appClose	main.c	/^void appClose(void)$/;"	f
+appInit	main.c	/^bool appInit(void)$/;"	f
+blinkTimer	play_state.h	/^    Timer blinkTimer;$/;"	m	struct:Bonus
+bonus	play_state.c	/^Bonus bonus; $/;"	v
+bonusHandlerArray	play_state.c	/^BonusHandlerFuncPtr bonusHandlerArray[7];$/;"	v
+bullet_array	play_state.c	/^Bullet bullet_array[MAX_BULLETS];$/;"	v
+ctx	main.c	/^Context ctx;$/;"	v
+currMe	play_state.h	/^    enum MoveEvent currMe;$/;"	m	struct:Tank	typeref:enum:Tank::MoveEvent
+currentState	fsm.h	/^    enum FSMStateId currentState;$/;"	m	struct:FSM	typeref:enum:FSM::FSMStateId
+drawTerrain	play_state.c	/^void drawTerrain(void)$/;"	f
+enabled	play_state.h	/^    bool enabled;$/;"	m	struct:Bullet
+enabled	play_state.h	/^    bool enabled;$/;"	m	struct:Tank
+enemiesLeft	global_defs.h	/^    int enemiesLeft;$/;"	m	struct:Gameplay
+enemyTankHitByPlayerBullet	play_state.c	/^void enemyTankHitByPlayerBullet(Tank *pTank)$/;"	f
+fe	play_state.h	/^    enum FireEvent fe;$/;"	m	struct:Tank	typeref:enum:Tank::FireEvent
+fireHoldout	play_state.h	/^    uint32_t fireHoldout;$/;"	m	struct:Tank
+fireTank	play_state.c	/^void fireTank(Tank *pTank)$/;"	f
+font2Tex	resource_mgr.c	/^static bool font2Tex(int fontTexId, int size, SDL_Color color)$/;"	f	file:
+fsm	main.c	/^FSM fsm;$/;"	v
+gameOver	global_defs.h	/^    bool gameOver;$/;"	m	struct:Gameplay
+gameOverTimer	play_state.c	/^Timer gameOverTimer;$/;"	v
+gmp	play_state.c	/^Gameplay gmp;$/;"	v
+handleBonusBomb	play_state.c	/^void handleBonusBomb(Tank *pTank)$/;"	f
+handleBonusGun	play_state.c	/^void handleBonusGun(Tank *pTank)$/;"	f
+handleBonusHelmet	play_state.c	/^void handleBonusHelmet(Tank *pTank) {}$/;"	f
+handleBonusShip	play_state.c	/^void handleBonusShip(Tank *pTank)$/;"	f
+handleBonusStar	play_state.c	/^void handleBonusStar(Tank *pTank)$/;"	f
+handleBonusTank	play_state.c	/^void handleBonusTank(Tank *pTank)$/;"	f
+handleBulletTankCollision	play_state.c	/^void handleBulletTankCollision(Bullet *pBullet, Tank *pTank)$/;"	f
+handleGameOver	play_state.c	/^void handleGameOver(void)$/;"	f
+handleGamepadPlayState	play_state.c	/^void handleGamepadPlayState(Tank *pTank)$/;"	f
+handleInput	fsm.h	/^    FSM_STATE_FUNC handleInput;$/;"	m	struct:FSMState
+handleInputPlayState	play_state.c	/^void handleInputPlayState(void)$/;"	f
+handleKeyboardPlayState	play_state.c	/^void handleKeyboardPlayState(Tank *pTank)$/;"	f
+hasBoat	play_state.h	/^    bool hasBoat;$/;"	m	struct:Tank
+hp	play_state.h	/^    int hp;$/;"	m	struct:Tank
+id	fsm.h	/^    enum FSMStateId id;$/;"	m	struct:FSMState	typeref:enum:FSMState::FSMStateId
+id	play_state.h	/^    enum TankID id;$/;"	m	struct:Tank	typeref:enum:Tank::TankID
+id	resource_mgr.h	/^    int id;$/;"	m	struct:TexTableEntry
+initBonus	play_state.c	/^void initBonus(void)$/;"	f
+initBullets	play_state.c	/^bool initBullets(void)$/;"	f
+initPlayState	play_state.c	/^bool initPlayState(void)$/;"	f
+initScoreLabelArray	play_state.c	/^void initScoreLabelArray(void)$/;"	f
+initTank	play_state.c	/^bool initTank(Tank *pTank, int level, int x, int y, float angle, enum TankID id)$/;"	f
+initTankArray	play_state.c	/^bool initTankArray(void)$/;"	f
+initTerrain	play_state.c	/^bool initTerrain(void)$/;"	f
+interval	timer.h	/^    uint32_t interval;$/;"	m	struct:Timer
+isInScene	play_state.c	/^bool isInScene(SDL_Rect* pRect)$/;"	f
+isInvalidMapLocation	play_state.c	/^bool isInvalidMapLocation(int x, int y)$/;"	f
+level	play_state.h	/^    int level;$/;"	m	struct:Tank
+lifetimeTimer	play_state.h	/^    Timer lifetimeTimer;$/;"	m	struct:Bonus
+lives	play_state.h	/^    int lives;$/;"	m	struct:Player
+loadTexture	resource_mgr.c	/^static bool loadTexture(int texId, const char * path)$/;"	f	file:
+main	main.c	/^int main(void)$/;"	f
+map	play_state.c	/^TerrainTile map[MAX_TERRAIN_TILES];$/;"	v
+moveTank	play_state.c	/^SDL_Rect* moveTank(Tank *pTank )$/;"	f
+newMe	play_state.h	/^    enum MoveEvent newMe;$/;"	m	struct:Tank	typeref:enum:Tank::MoveEvent
+p1	play_state.c	/^Player p1 = {2, 0, &tank_array[0]};$/;"	v
+p2	play_state.c	/^Player p2 = {2, 0, &tank_array[1]};$/;"	v
+pGameCtrl	global_defs.h	/^    SDL_GameController *pGameCtrl;$/;"	m	struct:Context
+pHandlerFunc	play_state.h	/^    BonusHandlerFuncPtr pHandlerFunc;$/;"	m	struct:Bonus
+pRen	global_defs.h	/^    SDL_Renderer *pRen;$/;"	m	struct:Context
+pTank	play_state.h	/^    Tank* pTank;$/;"	m	struct:Player
+pTex	play_state.h	/^    SDL_Texture *pTex;$/;"	m	struct:Bonus
+pTex	play_state.h	/^    SDL_Texture *pTex;$/;"	m	struct:Bullet
+pTex	play_state.h	/^    SDL_Texture *pTex;$/;"	m	struct:ScoreLabel
+pTex	play_state.h	/^    SDL_Texture *pTex;$/;"	m	struct:Tank
+pTex	play_state.h	/^    SDL_Texture *pTex;$/;"	m	struct:TerrainTile
+pTex	resource_mgr.h	/^    SDL_Texture *pTex;$/;"	m	struct:TexTableEntry
+pTimer	play_state.h	/^    Timer *pTimer;$/;"	m	struct:Tank
+pWin	global_defs.h	/^    SDL_Window *pWin;$/;"	m	struct:Context
+playerTankHitByEnemyBullet	play_state.c	/^void playerTankHitByEnemyBullet(Tank *pTank)$/;"	f
+players	global_defs.h	/^    int players;$/;"	m	struct:Context
+printfg	util.c	/^void printfg(int texId, int x, int y, char *fmt, ...)$/;"	f
+quit	global_defs.h	/^    bool quit;$/;"	m	struct:Context
+rect	play_state.h	/^    SDL_Rect rect;$/;"	m	struct:Bonus
+rect	play_state.h	/^    SDL_Rect rect;$/;"	m	struct:Bullet
+rect	play_state.h	/^    SDL_Rect rect;$/;"	m	struct:ScoreLabel
+rect	play_state.h	/^    SDL_Rect rect;$/;"	m	struct:Tank
+rect	play_state.h	/^    SDL_Rect rect;$/;"	m	struct:TerrainTile
+render	fsm.h	/^    FSM_STATE_FUNC render;$/;"	m	struct:FSMState
+renderBonus	play_state.c	/^void renderBonus(void)$/;"	f
+renderBullets	play_state.c	/^void renderBullets(void)$/;"	f
+renderGameOver	play_state.c	/^void renderGameOver(void)$/;"	f
+renderPlayState	play_state.c	/^void renderPlayState(void)$/;"	f
+renderScoreLabelArray	play_state.c	/^void renderScoreLabelArray(void)$/;"	f
+renderTanks	play_state.c	/^void renderTanks(void)$/;"	f
+rsmgr	resource_mgr.c	/^static ResourceMgr rsmgr;$/;"	v	file:
+rsmgrClose	resource_mgr.c	/^void rsmgrClose(void)$/;"	f
+rsmgrGetTexture	resource_mgr.c	/^SDL_Texture *rsmgrGetTexture(int texId)$/;"	f
+rsmgrInit	resource_mgr.c	/^bool rsmgrInit(void)$/;"	f
+scene	play_state.c	/^SDL_Rect scene;$/;"	v
+score	play_state.h	/^    int score;$/;"	m	struct:Player
+scoreLabelArray	play_state.c	/^ScoreLabel scoreLabelArray[MAX_SCORE_LABELS];$/;"	v
+setTankLevel	play_state.c	/^void setTankLevel(Tank* pTank, int level)$/;"	f
+speed	play_state.h	/^    uint32_t speed;$/;"	m	struct:Bullet
+speed	play_state.h	/^    uint32_t speed;$/;"	m	struct:Tank
+startTime	timer.h	/^    uint32_t startTime;$/;"	m	struct:Timer
+state	play_state.c	/^FSMState state;$/;"	v
+states	fsm.h	/^    FSMState* states[MAX_FSM_STATES];$/;"	m	struct:FSM
+tankId	play_state.h	/^    enum TankID tankId;$/;"	m	struct:Bullet	typeref:enum:Bullet::TankID
+tank_array	play_state.c	/^Tank tank_array[MAX_TANKS];$/;"	v
+tempRect	play_state.h	/^    SDL_Rect tempRect;$/;"	m	struct:Tank
+texTable	resource_mgr.h	/^    TexTableEntry texTable[MAX_TEX_RESOURCES];$/;"	m	struct:ResourceMgr
+timer	play_state.h	/^    Timer timer;$/;"	m	struct:ScoreLabel
+timer	play_state.h	/^    Timer timer;$/;"	m	struct:Tank
+type	play_state.h	/^    enum TerrainType type;$/;"	m	struct:TerrainTile	typeref:enum:TerrainTile::TerrainType
+update	fsm.h	/^    FSM_STATE_FUNC update;$/;"	m	struct:FSMState
+updateBonus	play_state.c	/^void updateBonus(void)$/;"	f
+updateBullets	play_state.c	/^void updateBullets()$/;"	f
+updatePlayState	play_state.c	/^void updatePlayState(void)$/;"	f
+updateTanks	play_state.c	/^void updateTanks(void)$/;"	f
