@@ -1,6 +1,7 @@
 #include <stdio.h> 
 #include <stdbool.h>
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_mixer.h>
 #include "global_defs.h"
 #include "timer.h"
 #include "resource_mgr.h"
@@ -51,9 +52,16 @@ bool appInit(void)
 
     //Initialize the various SDL susbsystems 
 
-    if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER) <  0)
+    if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_AUDIO) <  0)
     {
         printf("SDL failed to properly initialize: %s\n", SDL_GetError());
+        return false;
+    }
+
+    //Init the audio system
+    if(Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0)
+    {
+        printf("SDL_mixer could not initialize: %s\n", Mix_GetError());
         return false;
     }
 
@@ -65,16 +73,18 @@ bool appInit(void)
     if(!ctx.pWin)
     {
         printf("SDL window could not be created! %s\n", SDL_GetError());
+        Mix_Quit();
         SDL_Quit();
         return false;
     }
 
     //Create a renderer 
-    ctx.pRen = SDL_CreateRenderer(ctx.pWin, -1, SDL_RENDERER_SOFTWARE/*SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC*/);
+    ctx.pRen = SDL_CreateRenderer(ctx.pWin, -1, /*SDL_RENDERER_SOFTWARE*/SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if(!ctx.pRen)
     {
         SDL_DestroyWindow(ctx.pWin);
         printf("The renderer could not be created! %s\n", SDL_GetError());
+        Mix_Quit();
         SDL_Quit();
         return false;
     }
@@ -83,6 +93,7 @@ bool appInit(void)
     if(TTF_Init() == -1)
     {
         printf("ERROR! SDL_ttf could not be initialized!\n");
+        Mix_Quit();
         SDL_DestroyRenderer(ctx.pRen);
         SDL_DestroyWindow(ctx.pWin);
         SDL_Quit();
@@ -110,6 +121,7 @@ bool appInit(void)
     {
         SDL_DestroyRenderer(ctx.pRen);
         SDL_DestroyWindow(ctx.pWin);
+        Mix_Quit();
         SDL_Quit();
         return false;
     }
@@ -134,6 +146,7 @@ void appClose(void)
     TTF_Quit();
     SDL_DestroyRenderer(ctx.pRen);
     SDL_DestroyWindow(ctx.pWin);
+    Mix_Quit();
     SDL_Quit();
 }
 

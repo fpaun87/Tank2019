@@ -1,4 +1,4 @@
-TOP := /home/florin/projects/c/tank2018
+TOP := /home/florin/projects/c/tank2019
 CFLAGS :=  -Wall -Wextra -fno-omit-frame-pointer -c
 debug := 1
 

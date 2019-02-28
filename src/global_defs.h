@@ -3,14 +3,15 @@
 
 #include <stdbool.h>
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_mixer.h>
 
 #define WND_TOP_LEFT_X 0
 #define WND_TOP_LEFT_Y 0
-#define WND_WIDTH 1200
+#define WND_WIDTH 1440
 #define WND_HEIGHT 960
-#define SCENE_TOP_LEFT_X WND_TOP_LEFT_X
+#define SCENE_TOP_LEFT_X 240
 #define SCENE_TOP_LEFT_Y WND_TOP_LEFT_Y
-#define SCENE_WIDTH 960
+#define SCENE_WIDTH WND_HEIGHT
 #define SCENE_HEIGHT WND_HEIGHT
 #define FPS (uint32_t) 30u
 

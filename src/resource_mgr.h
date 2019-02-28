@@ -6,9 +6,12 @@
 
 #define MAX_PATH_LEN 80
 #define MAX_TEX_RESOURCES 35
-#define RESOURCE_PATH "/home/florin/projects/c/tank2018/resources/"
+#define MAX_MUSIC_RESOURCES 1
+#define MAX_CHUNK_RESOURCES 1
+#define RESOURCE_PATH "/home/florin/projects/c/tank2019/resources/"
 #define SPRITE_PATH   RESOURCE_PATH"/sprites"
 #define FONT_PATH  RESOURCE_PATH"/fonts"
+#define AUDIO_PATH  RESOURCE_PATH"/sound"
 
 //Texture id's
 #define TEX_ID_PLAYER1_LEVEL1 0
@@ -47,17 +50,22 @@
 #define TEX_ID_BONUS_BOMB      33
 #define TEX_ID_BONUS_GUN       34
 
-typedef struct TexTableEntry{
-    int id;
-    SDL_Texture *pTex;
-}TexTableEntry;
+//Music IDs
+#define MUSIC_ID_IDLE           0
+
+//Audio Chunk IDs
+#define CHUNK_ID_FIRE           0
 
 typedef struct ResourceMgr{
-    TexTableEntry texTable[MAX_TEX_RESOURCES];
+    SDL_Texture *texTable[MAX_TEX_RESOURCES];
+    Mix_Music *musicTable[MAX_MUSIC_RESOURCES];
+    Mix_Chunk *chunkTable[MAX_CHUNK_RESOURCES];
 }ResourceMgr;
 
 
 SDL_Texture *rsmgrGetTexture(int texId);
+Mix_Music *rsmgrGetMusic(int musicId);
+Mix_Chunk *rsmgrGetChunk(int chunkId);
 bool rsmgrInit(void);
 void rsmgrClose(void);
 

@@ -222,6 +222,9 @@ void updatePlayState(void)
 
     updateTanks();
     updateBullets();
+    //play the idle music
+    if(!Mix_PlayingMusic())
+        Mix_PlayMusic(rsmgrGetMusic(MUSIC_ID_IDLE), -1);
 }
 
 void renderPlayState(void)
@@ -243,12 +246,12 @@ void renderPlayState(void)
     //Render the score labels
     renderScoreLabelArray();
     //Render the text
-    printfg(TEX_ID_PLAY_FONT, 960, 650, "ENEMIES  %d", gmp.enemiesLeft);
-    printfg(TEX_ID_PLAY_FONT, 960, 700, "P1 LIVES %d", p1.lives);
+    printfg(TEX_ID_PLAY_FONT, 1210, 650, "ENEMIES  %02d", gmp.enemiesLeft);
+    printfg(TEX_ID_PLAY_FONT, 1210, 700, "P1 LIVES %02d", p1.lives);
     if(ctx.players == 2)
-        printfg(TEX_ID_PLAY_FONT, 960, 750, "P2 LIVES %d", p2.lives);
+		printfg(TEX_ID_PLAY_FONT, 1210, 750, "P2 LIVES %02d", p2.lives);
 
-    printfg(TEX_ID_PLAY_FONT, 960, 800, "LEVEL    %d", gmp.Level);
+    printfg(TEX_ID_PLAY_FONT, 1210, 800, "LEVEL    %02d", gmp.Level);
 
     //If game over
     if(gmp.gameOver)
@@ -264,6 +267,7 @@ void handleKeyboardPlayState(Tank *pTank)
     currentKeyStates = SDL_GetKeyboardState(NULL);
 
     if(currentKeyStates [SDL_SCANCODE_ESCAPE]){
+        Mix_HaltMusic();
         ctx.quit = true;
         return;
     }
@@ -446,6 +450,9 @@ void fireTank(Tank *pTank)
 
     //reset the fire timer after each successfull shot
     TIMER_SET(pTank->pTimer, pTank->fireHoldout);
+
+    //Play the fire sound
+    Mix_PlayChannel(-1, rsmgrGetChunk(CHUNK_ID_FIRE), 0);
 }
 
 bool initTank(Tank *pTank, int level, int x, int y, float angle, enum TankID id)
@@ -619,8 +626,8 @@ void renderBullets(void)
 
 bool isInScene(SDL_Rect* pRect)
 {
-    if(pRect->x < 0 || pRect->x > SCENE_WIDTH - pRect->w ||
-       pRect->y < 0 || pRect->y > SCENE_HEIGHT - pRect->h)
+    if(pRect->x < SCENE_TOP_LEFT_X || pRect->x > SCENE_TOP_LEFT_X + SCENE_WIDTH - pRect->w ||
+       pRect->y < SCENE_TOP_LEFT_Y || pRect->y > SCENE_TOP_LEFT_Y + SCENE_HEIGHT - pRect->h)
         return false;
     else
         return true;
@@ -631,20 +638,20 @@ bool initTankArray(void)
 {
     memset(tank_array, 0, sizeof(tank_array));
 
-    if(!initTank(&tank_array[0], 4, 5*64, SCENE_HEIGHT-64, 0.0f, TANK_ID_PLAYER1))
+    if(!initTank(&tank_array[0], 4, SCENE_TOP_LEFT_X + 5*64, SCENE_HEIGHT-64, 0.0f, TANK_ID_PLAYER1))
         return false;
 
-    if(!initTank(&tank_array[1], 1, 9*64, SCENE_HEIGHT-64, 0.0f, TANK_ID_PLAYER2))
+    if(!initTank(&tank_array[1], 1, SCENE_TOP_LEFT_X + 9*64, SCENE_HEIGHT-64, 0.0f, TANK_ID_PLAYER2))
         return false;
     
     if(ctx.players == 1)
         tank_array[1].enabled = false; 
     
     //Init the first batch of enemy tanks
-    initTank(&tank_array[2], 4, 0, 0, 180.0f, TANK_ID_ENEMY);
-    initTank(&tank_array[3], 4, 7*64, 0, 180.0f, TANK_ID_ENEMY);
-    initTank(&tank_array[4], 4, 14*64, 0, 180.0f, TANK_ID_ENEMY);
-    initTank(&tank_array[5], 4, 7*64, 7*64, 180.0f, TANK_ID_ENEMY);
+    initTank(&tank_array[2], 4, SCENE_TOP_LEFT_X, SCENE_TOP_LEFT_Y, 180.0f, TANK_ID_ENEMY);
+    initTank(&tank_array[3], 4, SCENE_TOP_LEFT_X + 7*64, SCENE_TOP_LEFT_Y, 180.0f, TANK_ID_ENEMY);
+    initTank(&tank_array[4], 4, SCENE_TOP_LEFT_X + 14*64, SCENE_TOP_LEFT_Y, 180.0f, TANK_ID_ENEMY);
+    initTank(&tank_array[5], 4, SCENE_TOP_LEFT_X + 7*64, 7*64, 180.0f, TANK_ID_ENEMY);
 
     return true;
 }
@@ -655,17 +662,19 @@ bool initTerrain(void)
     memset(map, 0, sizeof(map));
 
     //For now, a simple map containg only brick tiles
-    for(int x = 0; x < SCENE_WIDTH; x += 32)
+    for(int x = SCENE_TOP_LEFT_X; x < SCENE_TOP_LEFT_X + SCENE_WIDTH; x += 64)
     {
-        for(int y = 0; y < SCENE_HEIGHT; y += 32)
+        for(int y = SCENE_TOP_LEFT_Y; y < SCENE_TOP_LEFT_Y + SCENE_HEIGHT - 128; y += 64)
         {
+			/*
             if(isInvalidMapLocation(x, y))
                 continue;
+			*/
 
             map[i].rect.x = x;
             map[i].rect.y = y;
-            map[i].rect.w = 32;
-            map[i].rect.h = 32; 
+            map[i].rect.w = 64;
+            map[i].rect.h = 64; 
             map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
             map[i].type = TERRAIN_BRICK;
             i++;
@@ -673,6 +682,7 @@ bool initTerrain(void)
     }
 
     //Build the garrison
+	/*
     for(int h = 32; h < 97; h += 32)
     {
         map[i].rect.x = 13*32;
@@ -703,9 +713,9 @@ bool initTerrain(void)
     map[i+1].rect.h = 32;
     map[i+1].pTex = rsmgrGetTexture(TEX_ID_BRICK);
     map[i+1].type = TERRAIN_BRICK;
-
+	*/
     //Put the eagle
-    map[i+2].rect.x = 14*32;
+    map[i+2].rect.x = SCENE_TOP_LEFT_X + 7*64;
     map[i+2].rect.y = SCENE_HEIGHT - 64;
     map[i+2].rect.w = 64;
     map[i+2].rect.h = 64;

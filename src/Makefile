@@ -2,10 +2,10 @@ include ../Makefile
 
 #SHARE_PATH := $(TOP)/Shared/
 CFLAGS += -I /usr/local/include
-LDFLAGS += -L /usr/local/lib -lSDL2 -lSDL2_image -lSDL2_ttf -lm
+LDFLAGS += -L /usr/local/lib -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer -lm
 EXE_LOCATION:= ..
-EXE_DBG := Tank2018_dbg
-EXE_RELEASE := Tank2018
+EXE_DBG := Tank2019_dbg
+EXE_RELEASE := Tank2019
 
 ifeq ($(debug),1)
 EXE := $(EXE_DBG)
