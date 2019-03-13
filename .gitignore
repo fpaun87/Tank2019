@@ -1,5 +1,11 @@
 *.[oa]
 *~
+cscope.files
+cscope.out
+cscope.po.out
+cscope.in.out
+tags
+menu_base.png
 Tank2019
 Tank2019_dbg
 

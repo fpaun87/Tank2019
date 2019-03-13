@@ -16,6 +16,7 @@ Context ctx;
 //The finite state machine
 FSM fsm;
 
+extern bool initMenuState(void);
 extern bool initPlayState(void);
 
 int main(void)
@@ -33,9 +34,9 @@ int main(void)
     while (!ctx.quit)
     {
         ti = SDL_GetTicks();
-        fsm.states[fsm.currentState]->handleInput();
-        fsm.states[fsm.currentState]->update();
-        fsm.states[fsm.currentState]->render();
+        fsm.states[fsm.currentState].handleInput();
+        fsm.states[fsm.currentState].update();
+        fsm.states[fsm.currentState].render();
         tf = SDL_GetTicks();
         if((tf - ti) < updateInterval)
             SDL_Delay(tf - ti);
@@ -48,7 +49,6 @@ int main(void)
 bool appInit(void)
 {
     memset(&ctx, 0, sizeof(Context));
-    memset(&fsm, 0, sizeof(FSM));
 
     //Initialize the various SDL susbsystems 
 
@@ -69,7 +69,7 @@ bool appInit(void)
     SDL_ShowCursor(SDL_DISABLE);
 
     //Create a SDL window 
-    ctx.pWin = SDL_CreateWindow("Tank2018", WND_TOP_LEFT_X, WND_TOP_LEFT_Y, WND_WIDTH, WND_HEIGHT,                                                                                 SDL_WINDOW_SHOWN);
+    ctx.pWin = SDL_CreateWindow("Tank2019", WND_TOP_LEFT_X, WND_TOP_LEFT_Y, WND_WIDTH, WND_HEIGHT,                                                                                 SDL_WINDOW_SHOWN);
     if(!ctx.pWin)
     {
         printf("SDL window could not be created! %s\n", SDL_GetError());
@@ -79,7 +79,7 @@ bool appInit(void)
     }
 
     //Create a renderer 
-    ctx.pRen = SDL_CreateRenderer(ctx.pWin, -1, /*SDL_RENDERER_SOFTWARE*/SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    ctx.pRen = SDL_CreateRenderer(ctx.pWin, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if(!ctx.pRen)
     {
         SDL_DestroyWindow(ctx.pWin);
@@ -126,11 +126,17 @@ bool appInit(void)
         return false;
     }
 
-    //initMenuState();
+    //Initialize the FSM
+    memset(&fsm, 0, sizeof(FSM));
+
+    if(!initMenuState())
+        return false;
+
     if(!initPlayState())
         return false;
 
     //initScoreState();
+    fsm.currentState = FSM_MENU_STATE;
     
     return true;
 }

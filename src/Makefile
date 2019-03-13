@@ -13,7 +13,7 @@ else
 EXE := $(EXE_RELEASE)
 endif
 
-SRC := main.c resource_mgr.c play_state.c util.c
+SRC := main.c resource_mgr.c play_state.c util.c menu_state.c
 
 OBJS:=$(SRC:.c=.o)
 
@@ -31,6 +31,10 @@ play_state.o: play_state.c
 
 util.o: util.c
 	$(CC) $(CFLAGS) util.c
+
+menu_state.o: menu_state.c
+	$(CC) $(CFLAGS) menu_state.c
+
 
 .PHONY: clean
 clean:

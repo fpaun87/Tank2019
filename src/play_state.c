@@ -7,7 +7,6 @@
 extern FSM fsm;
 extern Context ctx;
 
-FSMState state;
 Tank tank_array[MAX_TANKS];
 Player p1 = {2, 0, &tank_array[0]};
 Player p2 = {2, 0, &tank_array[1]};
@@ -186,11 +185,12 @@ bool initPlayState(void)
     gmp.Level = 1;
 
     //Create the fsm state
+	FSMState state;
+	state.id = FSM_PLAY_STATE;
     state.update = updatePlayState;
     state.handleInput = handleInputPlayState;
     state.render = renderPlayState;
-    fsm.states[FSM_PLAY_STATE] = &state;
-    fsm.currentState = FSM_PLAY_STATE;
+	memcpy(&fsm.states[FSM_PLAY_STATE], &state, sizeof(FSMState));
 
     return true;
 }
@@ -203,7 +203,8 @@ void handleInputPlayState(void)
     {
         if((event.type == SDL_QUIT))
         {
-            ctx.quit = true;
+            //ctx.quit = true;
+            fsm.currentState = FSM_MENU_STATE;
             return;
         }
     }
@@ -268,7 +269,8 @@ void handleKeyboardPlayState(Tank *pTank)
 
     if(currentKeyStates [SDL_SCANCODE_ESCAPE]){
         Mix_HaltMusic();
-        ctx.quit = true;
+        //ctx.quit = true;
+        fsm.currentState = FSM_MENU_STATE;
         return;
     }
 

@@ -216,6 +216,9 @@ bool rsmgrInit(void)
     if(!loadTexture(TEX_ID_BONUS_CLOCK, SPRITE_PATH"/bonus_clock.png"))
         return false;
 
+    if(!loadTexture(TEX_ID_MENU, SPRITE_PATH"/menu.png"))
+        return false;
+
     /* Load fonts */
     if(!font2Tex(TEX_ID_PLAY_FONT,20, (SDL_Color){0, 0, 0, 255}))
             return false;

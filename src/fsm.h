@@ -15,7 +15,7 @@ typedef struct FSMState{
 }FSMState;
 
 typedef struct FSM{
-    FSMState* states[MAX_FSM_STATES];
+    FSMState states[MAX_FSM_STATES];
     enum FSMStateId currentState;
 }FSM;
 
