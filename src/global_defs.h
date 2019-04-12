@@ -7,8 +7,8 @@
 
 #define WND_TOP_LEFT_X 0
 #define WND_TOP_LEFT_Y 0
-#define WND_WIDTH 1440
-#define WND_HEIGHT 960
+#define WND_WIDTH 1312
+#define WND_HEIGHT 832
 #define SCENE_TOP_LEFT_X 240
 #define SCENE_TOP_LEFT_Y WND_TOP_LEFT_Y
 #define SCENE_WIDTH WND_HEIGHT
@@ -18,18 +18,14 @@
 enum MoveEvent {ME_STOP, ME_LEFT, ME_DOWN, ME_UP, ME_RIGHT};
 enum FireEvent {FE_NONE, FE_FIRE};
 
-typedef struct Context{
-    bool quit;
+typedef struct Config {
     SDL_Window *pWin;
     SDL_Renderer *pRen;
     SDL_GameController *pGameCtrl;
     int players;
-}Context;
-
-typedef struct Gameplay{
-    bool gameOver;
     int enemiesLeft;
     int Level;
-}Gameplay;
+} Config;
+
 
 #endif //GLOBAL_DEFS_H

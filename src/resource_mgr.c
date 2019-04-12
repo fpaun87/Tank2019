@@ -5,7 +5,7 @@
 #include "global_defs.h"
 #include "resource_mgr.h"
 
-extern Context ctx;
+extern Config cfg;
 static ResourceMgr rsmgr;
 
 static bool font2Tex(int fontTexId, int size, SDL_Color color)
@@ -32,7 +32,7 @@ static bool font2Tex(int fontTexId, int size, SDL_Color color)
     TTF_CloseFont(pFont);
 
     //Create a texture from the previous surface
-    pTextTex = SDL_CreateTextureFromSurface(ctx.pRen, pTextSurface);
+    pTextTex = SDL_CreateTextureFromSurface(cfg.pRen, pTextSurface);
     if(!pTextTex)
     {
         printf("Could not create texture from surface %s, %s: %d\n", SDL_GetError(), __FUNCTION__, __LINE__);
@@ -59,7 +59,7 @@ static bool loadTexture(int texId, const char * path)
     }
 
     //Now it's time to create a texture from this surface since we use the gpu to render
-    pTex = SDL_CreateTextureFromSurface(ctx.pRen, pSprite);
+    pTex = SDL_CreateTextureFromSurface(cfg.pRen, pSprite);
     if(!pTex)
     {
         printf("Error creating texture from surface %s ! %s\n", path, SDL_GetError());
@@ -98,6 +98,7 @@ static bool loadChunk(int id, char* path)
 
     return true;
 }
+
 Mix_Music *rsmgrGetMusic(int musId)
 {
     return rsmgr.musicTable[musId];
@@ -219,11 +220,29 @@ bool rsmgrInit(void)
     if(!loadTexture(TEX_ID_MENU, SPRITE_PATH"/menu.png"))
         return false;
 
+    if(!loadTexture(TEX_ID_HEALTH, SPRITE_PATH"/health32.png"))
+        return false;
+
+    if(!loadTexture(TEX_ID_COIN, SPRITE_PATH"/coin32.png"))
+        return false;
+
+    if(!loadTexture(TEX_ID_FLAG, SPRITE_PATH"/flag32.png"))
+        return false;
+
     /* Load fonts */
-    if(!font2Tex(TEX_ID_PLAY_FONT,20, (SDL_Color){0, 0, 0, 255}))
+    if(!font2Tex(TEX_ID_PLAY_FONT,30, (SDL_Color){0, 40, 0, 255}))
             return false;
 
-    if(!font2Tex(TEX_ID_GAMEOVER_FONT, 120, (SDL_Color){135, 0, 0, 255}))
+    if(!font2Tex(TEX_ID_GAMEOVER_FONT, 90, (SDL_Color){135, 0, 0, 255}))
+            return false;
+
+    if(!font2Tex(TEX_ID_MENU_FONT, 64, (SDL_Color){255, 255, 255, 255}))
+            return false;
+
+    if(!font2Tex(TEX_ID_LEVEL_FONT, 64, (SDL_Color){0, 0, 0, 255}))
+            return false;
+
+    if(!font2Tex(TEX_ID_PAUSE_FONT, 64, (SDL_Color){0, 0, 128, 255}))
             return false;
 
     /* Load music */

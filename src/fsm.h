@@ -1,17 +1,20 @@
 #ifndef FSM_H
 #define FSM_H
 
-#define MAX_FSM_STATES 3
+#define MAX_FSM_STATES 5
 
-enum FSMStateId {FSM_MENU_STATE, FSM_PLAY_STATE, FSM_SCORE_STATE};
+enum FSMStateId {
+	FSM_MENU_STATE,
+	FSM_LEVEL_STATE,
+	FSM_PLAY_STATE,
+	FSM_PAUSE_STATE,
+	FSM_GAMEOVER_STATE,
+	FSM_SCORE_STATE };
 
 typedef void (*FSM_STATE_FUNC)(void);
 
 typedef struct FSMState{
-    enum FSMStateId id;
-    FSM_STATE_FUNC handleInput;
-    FSM_STATE_FUNC update;
-    FSM_STATE_FUNC render;
+    FSM_STATE_FUNC run;
 }FSMState;
 
 typedef struct FSM{

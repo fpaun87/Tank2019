@@ -11,13 +11,18 @@ bool appInit(void);
 void appClose(void);
 
 //The global app context
-Context ctx;
+Config cfg;
+
+bool quit = false;
 
 //The finite state machine
 FSM fsm;
 
 extern bool initMenuState(void);
 extern bool initPlayState(void);
+extern bool initLevelState(void);
+extern bool initPauseState(void);
+extern bool initGameOverState(void);
 
 int main(void)
 {
@@ -31,12 +36,10 @@ int main(void)
     uint32_t tf = 0u; //ms
     uint32_t ti = SDL_GetTicks(); //ms
 
-    while (!ctx.quit)
+    while (!quit)
     {
         ti = SDL_GetTicks();
-        fsm.states[fsm.currentState].handleInput();
-        fsm.states[fsm.currentState].update();
-        fsm.states[fsm.currentState].render();
+        fsm.states[fsm.currentState].run();
         tf = SDL_GetTicks();
         if((tf - ti) < updateInterval)
             SDL_Delay(tf - ti);
@@ -48,7 +51,7 @@ int main(void)
 
 bool appInit(void)
 {
-    memset(&ctx, 0, sizeof(Context));
+    memset(&cfg, 0, sizeof(Config));
 
     //Initialize the various SDL susbsystems 
 
@@ -69,8 +72,8 @@ bool appInit(void)
     SDL_ShowCursor(SDL_DISABLE);
 
     //Create a SDL window 
-    ctx.pWin = SDL_CreateWindow("Tank2019", WND_TOP_LEFT_X, WND_TOP_LEFT_Y, WND_WIDTH, WND_HEIGHT,                                                                                 SDL_WINDOW_SHOWN);
-    if(!ctx.pWin)
+    cfg.pWin = SDL_CreateWindow("Tank2019", WND_TOP_LEFT_X, WND_TOP_LEFT_Y, WND_WIDTH, WND_HEIGHT,                                                                                 SDL_WINDOW_SHOWN);
+    if(!cfg.pWin)
     {
         printf("SDL window could not be created! %s\n", SDL_GetError());
         Mix_Quit();
@@ -79,10 +82,10 @@ bool appInit(void)
     }
 
     //Create a renderer 
-    ctx.pRen = SDL_CreateRenderer(ctx.pWin, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-    if(!ctx.pRen)
+    cfg.pRen = SDL_CreateRenderer(cfg.pWin, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    if(!cfg.pRen)
     {
-        SDL_DestroyWindow(ctx.pWin);
+        SDL_DestroyWindow(cfg.pWin);
         printf("The renderer could not be created! %s\n", SDL_GetError());
         Mix_Quit();
         SDL_Quit();
@@ -94,8 +97,8 @@ bool appInit(void)
     {
         printf("ERROR! SDL_ttf could not be initialized!\n");
         Mix_Quit();
-        SDL_DestroyRenderer(ctx.pRen);
-        SDL_DestroyWindow(ctx.pWin);
+        SDL_DestroyRenderer(cfg.pRen);
+        SDL_DestroyWindow(cfg.pWin);
         SDL_Quit();
         return false;
     }
@@ -109,18 +112,15 @@ bool appInit(void)
     if(!SDL_IsGameController(numOfJoysticks-1))
             printf("Your joystick is not a game controller! %s\n", SDL_GetError());
 
-    ctx.pGameCtrl = SDL_GameControllerOpen(numOfJoysticks-1);
-    if(!ctx.pGameCtrl)
+    cfg.pGameCtrl = SDL_GameControllerOpen(numOfJoysticks-1);
+    if(!cfg.pGameCtrl)
         printf("Game controller could not be opened! %s\n", SDL_GetError());
-
-    ctx.quit = false;
-    ctx.players = 2;
 
     //init the resource manager
     if(!rsmgrInit())
     {
-        SDL_DestroyRenderer(ctx.pRen);
-        SDL_DestroyWindow(ctx.pWin);
+        SDL_DestroyRenderer(cfg.pRen);
+        SDL_DestroyWindow(cfg.pWin);
         Mix_Quit();
         SDL_Quit();
         return false;
@@ -130,9 +130,18 @@ bool appInit(void)
     memset(&fsm, 0, sizeof(FSM));
 
     if(!initMenuState())
-        return false;
+		return false;
+
+	if(!initLevelState())
+		return false;
 
     if(!initPlayState())
+        return false;
+
+    if(!initPauseState())
+        return false;
+
+    if(!initGameOverState())
         return false;
 
     //initScoreState();
@@ -145,13 +154,13 @@ bool appInit(void)
 void appClose(void)
 {
     rsmgrClose();
-    if(ctx.pGameCtrl)
-        SDL_GameControllerClose(ctx.pGameCtrl);
+    if(cfg.pGameCtrl)
+        SDL_GameControllerClose(cfg.pGameCtrl);
 
     //destroyPlayState();
     TTF_Quit();
-    SDL_DestroyRenderer(ctx.pRen);
-    SDL_DestroyWindow(ctx.pWin);
+    SDL_DestroyRenderer(cfg.pRen);
+    SDL_DestroyWindow(cfg.pWin);
     Mix_Quit();
     SDL_Quit();
 }
