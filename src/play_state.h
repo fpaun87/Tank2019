@@ -6,7 +6,8 @@
 
 #define MAX_BULLETS 20
 #define MAX_TANKS 6
-#define MAX_TERRAIN_TILES 893
+#define MAX_TERRAIN_TILES 169
+
 #define DEFAULT_TANK_SPEED 4u //pixels per update step
 #define DEFAULT_BULLET_SPEED 8u //pixels per update step
 #define DEFAULT_FIRE_HOLDOUT 500u //ms
@@ -93,8 +94,8 @@ void updatePlayState(void);
 bool initPlayState(void);
 void handleInputPlayState(void);
 void renderPlayState(void);
-void handleGamepadPlayState(Tank *pTank);
-void handleKeyboardPlayState(Tank *pTank);
+void moveTankByGamepad(Tank *pTank);
+void moveTankByKeyboard(Tank *pTank);
 void renderPlayState(void);
 void handleGameOver(void);
 void renderGameOver(void);

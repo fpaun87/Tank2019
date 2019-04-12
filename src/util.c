@@ -3,7 +3,7 @@
 #include "global_defs.h"
 #include "resource_mgr.h"
 
-extern Context ctx;
+extern Config cfg;
 
 /* A function that renders an arbitrary text. The size 
  * and color of the text is determined by the 'texId' 
@@ -42,7 +42,7 @@ void printfg(int texId, int x, int y, char *fmt, ...)
         else
             srcRect.x = ((int)outBuf[i] - 65 + 10)*glyphWidth;
 
-        SDL_RenderCopy(ctx.pRen, text, &srcRect, &dstRect); 
+        SDL_RenderCopy(cfg.pRen, text, &srcRect, &dstRect); 
         dstRect.x += glyphWidth;
     }
     va_end(ap);

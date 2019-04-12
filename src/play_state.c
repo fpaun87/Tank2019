@@ -3,22 +3,13 @@
 #include "fsm.h"
 #include "util.h"
 #include "resource_mgr.h"
+#include "queue.h"
 
 extern FSM fsm;
-extern Context ctx;
+extern Config cfg;
+extern bool quit;
 
-Tank tank_array[MAX_TANKS];
-Player p1 = {2, 0, &tank_array[0]};
-Player p2 = {2, 0, &tank_array[1]};
-Bullet bullet_array[MAX_BULLETS];
-SDL_Rect scene;
-TerrainTile map[MAX_TERRAIN_TILES];
-Gameplay gmp;
-Timer gameOverTimer;
-ScoreLabel scoreLabelArray[MAX_SCORE_LABELS];
-BonusHandlerFuncPtr bonusHandlerArray[7];
-Bonus bonus; 
-
+void runPlayState(void);
 void setTankLevel(Tank* pTank, int level);
 void handleBulletTankCollision(Bullet *pBullet, Tank *pTank);
 void playerTankHitByEnemyBullet(Tank *pTank);
@@ -26,19 +17,42 @@ void enemyTankHitByPlayerBullet(Tank *pTank);
 bool activateScoreLabel(Tank *pTank);
 void renderScoreLabelArray(void);
 void initScoreLabelArray(void);
+void pre_runPlayState(void);
+void goToGameOverState(void);
+void drawForest(void);
+
+/* Terrain building functions */
+void buildTerrain1(void);
+
+/* The array of function pointers that point to
+ * functions which build the terrain for each level
+ */
+typedef void (*BuildTerrainFuncPtr) (void);
+BuildTerrainFuncPtr terrainBuilders[50] = { buildTerrain1, 0 };
+
+Tank tank_array[MAX_TANKS];
+Player p1 = {2, 0, &tank_array[0]};
+Player p2 = {2, 0, &tank_array[1]};
+Bullet bullet_array[MAX_BULLETS];
+SDL_Rect scene;
+TerrainTile map[MAX_TERRAIN_TILES];
+ScoreLabel scoreLabelArray[MAX_SCORE_LABELS];
+BonusHandlerFuncPtr bonusHandlerArray[7];
+Bonus bonus; 
+
 
 /* Prototypes for the bonus functions */
 void initBonus(void);
 /*
-void handleBonusStar(Tank *pTank);
-void handleBonusTank(Tank *pTank);
-void handleBonusHelmet(Tank *pTank);
-void handleBonusGun(Tank *pTank);
-void handleBonusBomb(Tank *pTank);
-void handleBonusClock(Tank *pTank);
-void handleBonusShovel(Tank *pTank);
-void handleBonusShip(Tank *pTank);
-*/
+ * void handleBonusStar(Tank *pTank);
+ * void handleBonusTank(Tank *pTank);
+ * void handleBonusHelmet(Tank *pTank);
+ * void handleBonusGun(Tank *pTank);
+ * void handleBonusBomb(Tank *pTank);
+ * void handleBonusClock(Tank *pTank);
+ * void handleBonusShovel(Tank *pTank);
+ * void handleBonusShip(Tank *pTank);
+ */
 void renderBonus(void);
 
 void updateTanks(void)
@@ -157,39 +171,13 @@ bool initPlayState(void)
     scene.w = SCENE_WIDTH;
     scene.h = SCENE_HEIGHT;
 
-    //init the terrain map
-    initTerrain();
-
-    //init the tank objects
-    if(!initTankArray())
-    {
-        ctx.quit = true;
-        return false;
-    }
- 
-    if(!initBullets())
-    {
-        ctx.quit = true;
-        return false;
-    }
 
     //init the score label array
     initScoreLabelArray();
 
-    //Init the bonus structure and the bonus handler array
-    initBonus();
-
-    //Init the gameplay structure
-    gmp.gameOver = false;
-    gmp.enemiesLeft = 20;
-    gmp.Level = 1;
-
     //Create the fsm state
 	FSMState state;
-	state.id = FSM_PLAY_STATE;
-    state.update = updatePlayState;
-    state.handleInput = handleInputPlayState;
-    state.render = renderPlayState;
+    state.run = pre_runPlayState;
 	memcpy(&fsm.states[FSM_PLAY_STATE], &state, sizeof(FSMState));
 
     return true;
@@ -203,76 +191,99 @@ void handleInputPlayState(void)
     {
         if((event.type == SDL_QUIT))
         {
-            //ctx.quit = true;
+            //quit = true;
             fsm.currentState = FSM_MENU_STATE;
+			fsm.states[FSM_PLAY_STATE].run = pre_runPlayState;
             return;
         }
+
+        if(event.type == SDL_KEYDOWN)
+        {
+            switch(event.key.keysym.sym)
+            {
+                case SDLK_ESCAPE:
+					Mix_HaltMusic();
+					//quit = true;
+					fsm.currentState = FSM_MENU_STATE;
+					fsm.states[FSM_PLAY_STATE].run = pre_runPlayState;
+					return;
+
+                case SDLK_p:
+					Mix_PauseMusic();
+					fsm.currentState = FSM_PAUSE_STATE;
+					return;
+            
+            }
+        }
     }
+
     //Let's query the input devices
-    handleKeyboardPlayState(p1.pTank);
-    handleGamepadPlayState(p2.pTank);
+    moveTankByKeyboard(p1.pTank);
+    moveTankByGamepad(p2.pTank);
 }
 
-void updatePlayState(void)
+void runPlayState(void)
 {
-    if(gmp.gameOver)
-    {
-        handleGameOver();
-        return;
-    }
+	handleInputPlayState();
 
-    updateTanks();
-    updateBullets();
-    //play the idle music
-    if(!Mix_PlayingMusic())
-        Mix_PlayMusic(rsmgrGetMusic(MUSIC_ID_IDLE), -1);
+	updateTanks();
+	updateBullets();
+
+	renderPlayState();
+
+    //Now update the screen (perhaps the buffer are now switched...)
+    SDL_RenderPresent(cfg.pRen);
 }
 
 void renderPlayState(void)
 {
+	static SDL_Rect icon = {1080,0,32,32};
     //First clear the renderer
-    SDL_SetRenderDrawColor(ctx.pRen, 128,128,128,255);
-    SDL_RenderClear(ctx.pRen);
+    SDL_SetRenderDrawColor(cfg.pRen, 128,128,128,255);
+    SDL_RenderClear(cfg.pRen);
     //Render the scene
-    SDL_SetRenderDrawColor(ctx.pRen, 0,0,0,255);
-    SDL_RenderFillRect(ctx.pRen, &scene);
+    SDL_SetRenderDrawColor(cfg.pRen, 0,0,0,255);
+    SDL_RenderFillRect(cfg.pRen, &scene);
     //Draw the terrain
     drawTerrain();
     //Render the tanks
     renderTanks();
     //Render all the enabled bullets
     renderBullets();
+	//Rendere the forest
+	drawForest();
     //Render the bonus
     renderBonus();
     //Render the score labels
     renderScoreLabelArray();
     //Render the text
-    printfg(TEX_ID_PLAY_FONT, 1210, 650, "ENEMIES  %02d", gmp.enemiesLeft);
-    printfg(TEX_ID_PLAY_FONT, 1210, 700, "P1 LIVES %02d", p1.lives);
-    if(ctx.players == 2)
-		printfg(TEX_ID_PLAY_FONT, 1210, 750, "P2 LIVES %02d", p2.lives);
+    printfg(TEX_ID_PLAY_FONT, 1080, 400, "P I\n");
+	icon.y = 430;	
+	SDL_RenderCopy(cfg.pRen, rsmgrGetTexture(TEX_ID_HEALTH), NULL, &icon); 
+    printfg(TEX_ID_PLAY_FONT, 1126, 430, "%02d", p1.lives);
+	icon.y = 470;	
+	SDL_RenderCopy(cfg.pRen, rsmgrGetTexture(TEX_ID_COIN), NULL, &icon); 
+    printfg(TEX_ID_PLAY_FONT, 1126, 470, "%06d", p1.score);
+	printfg(TEX_ID_PLAY_FONT, 1080, 530, "P II");
+	icon.y = 560;	
+	SDL_RenderCopy(cfg.pRen, rsmgrGetTexture(TEX_ID_HEALTH), NULL, &icon); 
+	printfg(TEX_ID_PLAY_FONT, 1126, 560, "%02d", p2.lives);
+	icon.y = 600;	
+	SDL_RenderCopy(cfg.pRen, rsmgrGetTexture(TEX_ID_COIN), NULL, &icon); 
+	printfg(TEX_ID_PLAY_FONT, 1126, 600, "%06d", p2.score);
 
-    printfg(TEX_ID_PLAY_FONT, 1210, 800, "LEVEL    %02d", gmp.Level);
+	icon.y = 700;	
+	SDL_RenderCopy(cfg.pRen, rsmgrGetTexture(TEX_ID_FLAG), NULL, &icon); 
+    printfg(TEX_ID_PLAY_FONT, 1126, 700, "%02d", cfg.Level);
 
-    //If game over
-    if(gmp.gameOver)
-        renderGameOver();
-
-    //Now update the screen (perhaps the buffer are now switched...)
-    SDL_RenderPresent(ctx.pRen);
 }
 
-void handleKeyboardPlayState(Tank *pTank)
+void moveTankByKeyboard(Tank *pTank)
 {
     static const Uint8* currentKeyStates = NULL;
+
     currentKeyStates = SDL_GetKeyboardState(NULL);
 
-    if(currentKeyStates [SDL_SCANCODE_ESCAPE]){
-        Mix_HaltMusic();
-        //ctx.quit = true;
-        fsm.currentState = FSM_MENU_STATE;
-        return;
-    }
 
     if(currentKeyStates [SDL_SCANCODE_SPACE]){
         pTank->fe = FE_FIRE;
@@ -302,28 +313,28 @@ void handleKeyboardPlayState(Tank *pTank)
     pTank->newMe = ME_STOP;
 }
 
-void handleGamepadPlayState(Tank *pTank)
+void moveTankByGamepad(Tank *pTank)
 {
-    if(SDL_GameControllerGetButton(ctx.pGameCtrl, SDL_CONTROLLER_BUTTON_A)){
+    if(SDL_GameControllerGetButton(cfg.pGameCtrl, SDL_CONTROLLER_BUTTON_A)){
         pTank->fe = FE_FIRE;
     }
 
-    if(SDL_GameControllerGetButton(ctx.pGameCtrl, SDL_CONTROLLER_BUTTON_DPAD_UP)){
+    if(SDL_GameControllerGetButton(cfg.pGameCtrl, SDL_CONTROLLER_BUTTON_DPAD_UP)){
         pTank->newMe = ME_UP;
         return;
     }
 
-    if(SDL_GameControllerGetButton(ctx.pGameCtrl, SDL_CONTROLLER_BUTTON_DPAD_LEFT)){
+    if(SDL_GameControllerGetButton(cfg.pGameCtrl, SDL_CONTROLLER_BUTTON_DPAD_LEFT)){
         pTank->newMe = ME_LEFT;
         return;
     }
 
-    if(SDL_GameControllerGetButton(ctx.pGameCtrl, SDL_CONTROLLER_BUTTON_DPAD_DOWN)){
+    if(SDL_GameControllerGetButton(cfg.pGameCtrl, SDL_CONTROLLER_BUTTON_DPAD_DOWN)){
         pTank->newMe = ME_DOWN;
         return;
     }
 
-    if(SDL_GameControllerGetButton(ctx.pGameCtrl, SDL_CONTROLLER_BUTTON_DPAD_RIGHT)){
+    if(SDL_GameControllerGetButton(cfg.pGameCtrl, SDL_CONTROLLER_BUTTON_DPAD_RIGHT)){
         pTank->newMe = ME_RIGHT;
         return;
     }
@@ -332,15 +343,6 @@ void handleGamepadPlayState(Tank *pTank)
     pTank->newMe = ME_STOP;
 }
 
-void renderGameOver(void)
-{
-    int x = 295;
-    static int y = SCENE_HEIGHT - 44;
-    printfg(TEX_ID_GAMEOVER_FONT, x, y, "GAME OVER");
-    if(y > 300)
-        y-= 2;
-    
-}
 
 void handleGameOver(void)
 {
@@ -396,7 +398,7 @@ void fireTank(Tank *pTank)
         return;
 
     //You can't fire when the timer is ticking
-    if(IS_TIMER_TICKING(pTank->pTimer))
+    if(!isTimerUp(pTank->pTimer))
     {
         pTank->fe = FE_NONE;
         return;
@@ -451,7 +453,7 @@ void fireTank(Tank *pTank)
     pTank->fe = FE_NONE;
 
     //reset the fire timer after each successfull shot
-    TIMER_SET(pTank->pTimer, pTank->fireHoldout);
+    setTimer(pTank->pTimer, pTank->fireHoldout);
 
     //Play the fire sound
     Mix_PlayChannel(-1, rsmgrGetChunk(CHUNK_ID_FIRE), 0);
@@ -577,10 +579,10 @@ void updateBullets()
             {
                 if(map[k].type == TERRAIN_EAGLE)
                 {
-                    gmp.gameOver = true;
                     map[k].pTex = rsmgrGetTexture(TEX_ID_DEAD_EAGLE);
                     bullet_array[i].enabled = false;
-                    return;
+					goToGameOverState();
+					return;
                 }
 
                 map[k].pTex = NULL;
@@ -603,7 +605,7 @@ void renderTanks(void)
     for(int i = 0; i < MAX_TANKS; i++)
     {
         if(tank_array[i].enabled)
-            SDL_RenderCopyEx(ctx.pRen, tank_array[i].pTex, NULL, &tank_array[i].rect, 
+            SDL_RenderCopyEx(cfg.pRen, tank_array[i].pTex, NULL, &tank_array[i].rect, 
                             tank_array[i].angle, NULL, SDL_FLIP_NONE);
     }
 }
@@ -622,7 +624,7 @@ void renderBullets(void)
         rect.w = bullet_array[i].rect.w;
         rect.h = bullet_array[i].rect.h;
 
-        SDL_RenderCopyEx(ctx.pRen, bullet_array[i].pTex, NULL, &rect, bullet_array[i].angle, NULL, SDL_FLIP_NONE);
+        SDL_RenderCopyEx(cfg.pRen, bullet_array[i].pTex, NULL, &rect, bullet_array[i].angle, NULL, SDL_FLIP_NONE);
     }
 }
 
@@ -640,90 +642,833 @@ bool initTankArray(void)
 {
     memset(tank_array, 0, sizeof(tank_array));
 
-    if(!initTank(&tank_array[0], 4, SCENE_TOP_LEFT_X + 5*64, SCENE_HEIGHT-64, 0.0f, TANK_ID_PLAYER1))
+    if(!initTank(&tank_array[0], 4, SCENE_TOP_LEFT_X + 4*64, SCENE_HEIGHT-64, 0.0f, TANK_ID_PLAYER1))
         return false;
 
-    if(!initTank(&tank_array[1], 1, SCENE_TOP_LEFT_X + 9*64, SCENE_HEIGHT-64, 0.0f, TANK_ID_PLAYER2))
+    if(!initTank(&tank_array[1], 1, SCENE_TOP_LEFT_X + 8*64, SCENE_HEIGHT-64, 0.0f, TANK_ID_PLAYER2))
         return false;
     
-    if(ctx.players == 1)
+    if(cfg.players == 1)
         tank_array[1].enabled = false; 
     
     //Init the first batch of enemy tanks
     initTank(&tank_array[2], 4, SCENE_TOP_LEFT_X, SCENE_TOP_LEFT_Y, 180.0f, TANK_ID_ENEMY);
-    initTank(&tank_array[3], 4, SCENE_TOP_LEFT_X + 7*64, SCENE_TOP_LEFT_Y, 180.0f, TANK_ID_ENEMY);
-    initTank(&tank_array[4], 4, SCENE_TOP_LEFT_X + 14*64, SCENE_TOP_LEFT_Y, 180.0f, TANK_ID_ENEMY);
-    initTank(&tank_array[5], 4, SCENE_TOP_LEFT_X + 7*64, 7*64, 180.0f, TANK_ID_ENEMY);
+    initTank(&tank_array[3], 4, SCENE_TOP_LEFT_X + 6*64, SCENE_TOP_LEFT_Y, 180.0f, TANK_ID_ENEMY);
+    initTank(&tank_array[4], 4, SCENE_TOP_LEFT_X + 12*64, SCENE_TOP_LEFT_Y, 180.0f, TANK_ID_ENEMY);
+    initTank(&tank_array[5], 4, SCENE_TOP_LEFT_X + 6*64, SCENE_TOP_LEFT_Y + 2*64, 180.0f, TANK_ID_ENEMY);
 
     return true;
 }
 
-bool initTerrain(void)
+void buildTerrain1(void)
 {
     int i = 0;
     memset(map, 0, sizeof(map));
 
-    //For now, a simple map containg only brick tiles
-    for(int x = SCENE_TOP_LEFT_X; x < SCENE_TOP_LEFT_X + SCENE_WIDTH; x += 64)
-    {
-        for(int y = SCENE_TOP_LEFT_Y; y < SCENE_TOP_LEFT_Y + SCENE_HEIGHT - 128; y += 64)
-        {
-			/*
-            if(isInvalidMapLocation(x, y))
-                continue;
-			*/
+	//For now level 1 map from Tank 1990 N
 
+	//Line 1: all ice:
+    for(int x = SCENE_TOP_LEFT_X; x < SCENE_TOP_LEFT_X + SCENE_WIDTH; x += 64)
+	{
             map[i].rect.x = x;
-            map[i].rect.y = y;
+            map[i].rect.y = 0;
             map[i].rect.w = 64;
             map[i].rect.h = 64; 
-            map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
-            map[i].type = TERRAIN_BRICK;
+            map[i].pTex = rsmgrGetTexture(TEX_ID_ICE);
+            map[i].type = TERRAIN_ICE;
             i++;
-        }
-    }
+	}
+	
+	//Line 2
+	map[i].rect.x = SCENE_TOP_LEFT_X + 0;
+	map[i].rect.y = 1*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_ICE);
+	map[i].type = TERRAIN_ICE;
+	i++;
 
-    //Build the garrison
-	/*
-    for(int h = 32; h < 97; h += 32)
-    {
-        map[i].rect.x = 13*32;
-        map[i].rect.y = SCENE_HEIGHT - h;
-        map[i].rect.w = 32;
-        map[i].rect.h = 32;
-        map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
-        map[i].type = TERRAIN_BRICK;
-        map[i+1].rect.x = 16*32;
-        map[i+1].rect.y = SCENE_HEIGHT - h;
-        map[i+1].rect.w = 32;
-        map[i+1].rect.h = 32;
-        map[i+1].pTex = rsmgrGetTexture(TEX_ID_BRICK);
-        map[i+1].type = TERRAIN_BRICK;
-        i+=2;
-    }
+	map[i].rect.x = SCENE_TOP_LEFT_X + 1*64;
+	map[i].rect.y = 1*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_ICE);
+	map[i].type = TERRAIN_ICE;
+	i += 2;
 
-    map[i].rect.x = 14*32;
-    map[i].rect.y = SCENE_HEIGHT - 96;
-    map[i].rect.w = 32;
-    map[i].rect.h = 32;
-    map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
-    map[i].type = TERRAIN_BRICK;
+	map[i].rect.x = SCENE_TOP_LEFT_X + 3*64;
+	map[i].rect.y = 1*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i++;
 
-    map[i+1].rect.x = 15*32;
-    map[i+1].rect.y = SCENE_HEIGHT - 96;
-    map[i+1].rect.w = 32;
-    map[i+1].rect.h = 32;
-    map[i+1].pTex = rsmgrGetTexture(TEX_ID_BRICK);
-    map[i+1].type = TERRAIN_BRICK;
-	*/
-    //Put the eagle
-    map[i+2].rect.x = SCENE_TOP_LEFT_X + 7*64;
-    map[i+2].rect.y = SCENE_HEIGHT - 64;
-    map[i+2].rect.w = 64;
-    map[i+2].rect.h = 64;
-    map[i+2].pTex = rsmgrGetTexture(TEX_ID_EAGLE);
-    map[i+2].type = TERRAIN_EAGLE;
-    return true;
+	map[i].rect.x = SCENE_TOP_LEFT_X + 4*64;
+	map[i].rect.y = 1*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 5*64;
+	map[i].rect.y = 1*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 7*64;
+	map[i].rect.y = 1*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 8*64;
+	map[i].rect.y = 1*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 9*64;
+	map[i].rect.y = 1*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 11*64;
+	map[i].rect.y = 1*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_ICE);
+	map[i].type = TERRAIN_ICE;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 12*64;
+	map[i].rect.y = 1*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_ICE);
+	map[i].type = TERRAIN_ICE;
+	i++;
+
+	//Line 3
+	map[i].rect.x = SCENE_TOP_LEFT_X + 0;
+	map[i].rect.y = 2*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_ICE);
+	map[i].type = TERRAIN_ICE;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 1*64;
+	map[i].rect.y = 2*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_ICE);
+	map[i].type = TERRAIN_ICE;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 3*64;
+	map[i].rect.y = 2*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 5*64;
+	map[i].rect.y = 2*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 7*64;
+	map[i].rect.y = 2*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 9*64;
+	map[i].rect.y = 2*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 11*64;
+	map[i].rect.y = 2*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_ICE);
+	map[i].type = TERRAIN_ICE;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 12*64;
+	map[i].rect.y = 2*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_ICE);
+	map[i].type = TERRAIN_ICE;
+	i++;
+
+	//Line 4
+	map[i].rect.x = SCENE_TOP_LEFT_X + 0;
+	map[i].rect.y = 3*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_ICE);
+	map[i].type = TERRAIN_ICE;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 1*64;
+	map[i].rect.y = 3*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_ICE);
+	map[i].type = TERRAIN_ICE;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 3*64;
+	map[i].rect.y = 3*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i ++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 4*64;
+	map[i].rect.y = 3*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i ++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 5*64;
+	map[i].rect.y = 3*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 7*64;
+	map[i].rect.y = 3*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 9*64;
+	map[i].rect.y = 3*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 11*64;
+	map[i].rect.y = 3*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_ICE);
+	map[i].type = TERRAIN_ICE;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 12*64;
+	map[i].rect.y = 3*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_ICE);
+	map[i].type = TERRAIN_ICE;
+	i++;
+
+	//Line 5
+	map[i].rect.x = SCENE_TOP_LEFT_X + 0;
+	map[i].rect.y = 4*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_ICE);
+	map[i].type = TERRAIN_ICE;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 1*64;
+	map[i].rect.y = 4*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_ICE);
+	map[i].type = TERRAIN_ICE;
+	i += 3;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 5*64;
+	map[i].rect.y = 4*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 7*64;
+	map[i].rect.y = 4*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 9*64;
+	map[i].rect.y = 4*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 11*64;
+	map[i].rect.y = 4*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_ICE);
+	map[i].type = TERRAIN_ICE;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 12*64;
+	map[i].rect.y = 4*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_ICE);
+	map[i].type = TERRAIN_ICE;
+	i++;
+
+	//Line 6
+	map[i].rect.x = SCENE_TOP_LEFT_X + 0;
+	map[i].rect.y = 5*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_ICE);
+	map[i].type = TERRAIN_ICE;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 1*64;
+	map[i].rect.y = 5*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_ICE);
+	map[i].type = TERRAIN_ICE;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 3*64;
+	map[i].rect.y = 5*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 4*64;
+	map[i].rect.y = 5*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 5*64;
+	map[i].rect.y = 5*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 7*64;
+	map[i].rect.y = 5*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 8*64;
+	map[i].rect.y = 5*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 9*64;
+	map[i].rect.y = 5*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 11*64;
+	map[i].rect.y = 5*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_ICE);
+	map[i].type = TERRAIN_ICE;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 12*64;
+	map[i].rect.y = 5*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_ICE);
+	map[i].type = TERRAIN_ICE;
+	i++;
+
+	//Line 7: all ice
+    for(int x = SCENE_TOP_LEFT_X; x < SCENE_TOP_LEFT_X + SCENE_WIDTH; x += 64)
+	{
+            map[i].rect.x = x;
+            map[i].rect.y = 6*64;
+            map[i].rect.w = 64;
+            map[i].rect.h = 64; 
+            map[i].pTex = rsmgrGetTexture(TEX_ID_ICE);
+            map[i].type = TERRAIN_ICE;
+            i++;
+	}
+
+    //Line 8
+	map[i].rect.x = SCENE_TOP_LEFT_X + 0;
+	map[i].rect.y = 7*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_SHIELD);
+	map[i].type = TERRAIN_SHIELD;
+	i += 4;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 5*64;
+	map[i].rect.y = 7*64 + 32;
+	map[i].rect.w = 64;
+	map[i].rect.h = 32; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 6*64;
+	map[i].rect.y = 7*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_SHIELD);
+	map[i].type = TERRAIN_SHIELD;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 7*64;
+	map[i].rect.y = 7*64 + 32;
+	map[i].rect.w = 64;
+	map[i].rect.h = 32; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 4;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 12*64;
+	map[i].rect.y = 7*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_SHIELD);
+	map[i].type = TERRAIN_SHIELD;
+	i++;
+
+	//Line 9
+	map[i].rect.x = SCENE_TOP_LEFT_X + 0;
+	map[i].rect.y = 8*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_FOREST);
+	map[i].type = TERRAIN_FOREST;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 1*64;
+	map[i].rect.y = 8*64 + 32;
+	map[i].rect.w = 64;
+	map[i].rect.h = 32; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 3*64;
+	map[i].rect.y = 8*64 + 32;
+	map[i].rect.w = 64;
+	map[i].rect.h = 32; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 5*64;
+	map[i].rect.y = 8*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 6*64;
+	map[i].rect.y = 8*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 7*64;
+	map[i].rect.y = 8*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 9*64;
+	map[i].rect.y = 8*64 + 32;
+	map[i].rect.w = 64;
+	map[i].rect.h = 32; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 11*64;
+	map[i].rect.y = 8*64 + 32;
+	map[i].rect.w = 64;
+	map[i].rect.h = 32; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 12*64;
+	map[i].rect.y = 8*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_FOREST);
+	map[i].type = TERRAIN_FOREST;
+	i++;
+
+	//Line 10
+	map[i].rect.x = SCENE_TOP_LEFT_X + 0;
+	map[i].rect.y = 9*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_FOREST);
+	map[i].type = TERRAIN_FOREST;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 1*64;
+	map[i].rect.y = 9*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 2*64;
+	map[i].rect.y = 9*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_SHIELD);
+	map[i].type = TERRAIN_SHIELD;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 3*64;
+	map[i].rect.y = 9*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 4*64;
+	map[i].rect.y = 9*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_SHIELD);
+	map[i].type = TERRAIN_SHIELD;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 5*64;
+	map[i].rect.y = 9*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 6*64;
+	map[i].rect.y = 9*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 7*64;
+	map[i].rect.y = 9*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 8*64;
+	map[i].rect.y = 9*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_SHIELD);
+	map[i].type = TERRAIN_SHIELD;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 9*64;
+	map[i].rect.y = 9*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 10*64;
+	map[i].rect.y = 9*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_SHIELD);
+	map[i].type = TERRAIN_SHIELD;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 11*64;
+	map[i].rect.y = 9*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 12*64;
+	map[i].rect.y = 9*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_FOREST);
+	map[i].type = TERRAIN_FOREST;
+	i++;
+
+	//Line 11
+	map[i].rect.x = SCENE_TOP_LEFT_X + 0;
+	map[i].rect.y = 10*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_FOREST);
+	map[i].type = TERRAIN_FOREST;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 1*64;
+	map[i].rect.y = 10*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 3*64;
+	map[i].rect.y = 10*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 5*64;
+	map[i].rect.y = 10*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 32; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 7*64;
+	map[i].rect.y = 10*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 32; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 9*64;
+	map[i].rect.y = 10*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 11*64;
+	map[i].rect.y = 10*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 12*64;
+	map[i].rect.y = 10*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_FOREST);
+	map[i].type = TERRAIN_FOREST;
+	i++;
+
+	//Line 12
+	map[i].rect.x = SCENE_TOP_LEFT_X + 0;
+	map[i].rect.y = 11*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_FOREST);
+	map[i].type = TERRAIN_FOREST;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 1*64;
+	map[i].rect.y = 11*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 3*64;
+	map[i].rect.y = 11*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 5*64 + 32;
+	map[i].rect.y = 11*64 + 32;
+	map[i].rect.w = 32;
+	map[i].rect.h = 32; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 6*64;
+	map[i].rect.y = 11*64 + 32;
+	map[i].rect.w = 64;
+	map[i].rect.h = 32; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 7*64;
+	map[i].rect.y = 11*64 + 32;
+	map[i].rect.w = 32;
+	map[i].rect.h = 32; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 9*64;
+	map[i].rect.y = 11*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 11*64;
+	map[i].rect.y = 11*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 12*64;
+	map[i].rect.y = 11*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_FOREST);
+	map[i].type = TERRAIN_FOREST;
+	i++;
+
+	//Line 13
+	map[i].rect.x = SCENE_TOP_LEFT_X + 0;
+	map[i].rect.y = 12*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_FOREST);
+	map[i].type = TERRAIN_FOREST;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 1*64;
+	map[i].rect.y = 12*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_FOREST);
+	map[i].type = TERRAIN_FOREST;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 2*64;
+	map[i].rect.y = 12*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_FOREST);
+	map[i].type = TERRAIN_FOREST;
+	i += 3;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 5*64 + 32;
+	map[i].rect.y = 12*64;
+	map[i].rect.w = 32;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i++;
+
+	//THE MIGHTY EAGLE
+	map[i].rect.x = SCENE_TOP_LEFT_X + 6*64;
+	map[i].rect.y = 12*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_EAGLE);
+	map[i].type = TERRAIN_EAGLE;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 7*64;
+	map[i].rect.y = 12*64;
+	map[i].rect.w = 32;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
+	map[i].type = TERRAIN_BRICK;
+	i += 2;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 10*64;
+	map[i].rect.y = 12*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_FOREST);
+	map[i].type = TERRAIN_FOREST;
+	i++;
+
+	map[i].rect.x = SCENE_TOP_LEFT_X + 11*64;
+	map[i].rect.y = 12*64;
+	map[i].rect.w = 64;
+	map[i].rect.h = 64; 
+	map[i].pTex = rsmgrGetTexture(TEX_ID_FOREST);
+	map[i].type = TERRAIN_FOREST;
 }
 
 bool isInvalidMapLocation(int x, int y)
@@ -759,12 +1504,29 @@ bool isInvalidMapLocation(int x, int y)
 
 void drawTerrain(void)
 {
+    static SDL_Rect rect = {0};
     for(int i = 0; i < MAX_TERRAIN_TILES; i++)
     {
-        if(map[i].pTex == NULL)
+        if((map[i].pTex == NULL) || (map[i].type == TERRAIN_FOREST))
             continue;
 
-        SDL_RenderCopy(ctx.pRen, map[i].pTex, NULL, &map[i].rect);
+		rect.w = map[i].rect.w;
+		rect.h = map[i].rect.h;
+        SDL_RenderCopy(cfg.pRen, map[i].pTex, &rect, &map[i].rect);
+    }
+}
+
+void drawForest(void)
+{
+    static SDL_Rect rect = {0};
+    for(int i = 0; i < MAX_TERRAIN_TILES; i++)
+    {
+        if(map[i].type != TERRAIN_FOREST)
+            continue;
+
+		rect.w = map[i].rect.w;
+		rect.h = map[i].rect.h;
+        SDL_RenderCopy(cfg.pRen, map[i].pTex, &rect, &map[i].rect);
     }
 }
 
@@ -867,7 +1629,7 @@ void enemyTankHitByPlayerBullet(Tank *pTank)
         return;
 
     pTank->enabled = false;
-    gmp.enemiesLeft--;
+    cfg.enemiesLeft--;
 
     if(pTank->id == TANK_ID_PLAYER1)
         p1.score += pTank->level * 100;
@@ -888,7 +1650,7 @@ bool activateScoreLabel(Tank *pTank)
     //find a score label that is not yet activated
     for(i = 0; i < MAX_SCORE_LABELS; i++)
     {
-        if(IS_TIMER_TICKING(&scoreLabelArray[i].timer))
+        if(!isTimerUp(&scoreLabelArray[i].timer))
             continue;
 
         break;
@@ -931,7 +1693,7 @@ bool activateScoreLabel(Tank *pTank)
             printf("THIS IS OS FUCKED UP! FIX YOUR LOGIC %s, %d\n", __FUNCTION__, __LINE__);
     }
 
-    TIMER_SET(&scoreLabelArray[i].timer, SCORE_LABEL_INTERVAL_MSEC);
+    setTimer(&scoreLabelArray[i].timer, SCORE_LABEL_INTERVAL_MSEC);
     return true;
 }
 
@@ -939,10 +1701,10 @@ void renderScoreLabelArray(void)
 {
     for(int i = 0; i < MAX_SCORE_LABELS; i++)
     {
-        if(!IS_TIMER_TICKING(&scoreLabelArray[i].timer))
+        if(isTimerUp(&scoreLabelArray[i].timer))
             continue;
 
-        SDL_RenderCopy(ctx.pRen, scoreLabelArray[i].pTex, NULL, &scoreLabelArray[i].rect);
+        SDL_RenderCopy(cfg.pRen, scoreLabelArray[i].pTex, NULL, &scoreLabelArray[i].rect);
     }
 }
 
@@ -975,7 +1737,7 @@ void initBonus(void)
     bonusHandlerArray[7] = handleBonusGun;    
 
 */
-    TIMER_SET(&bonus.lifetimeTimer, BONUS_LIFETIME_INTERVAL_MS);
+    setTimer(&bonus.lifetimeTimer, BONUS_LIFETIME_INTERVAL_MS);
 }
 /*
 void handleBonusStar(Tank *pTank)
@@ -1037,17 +1799,44 @@ void handleBonusShip(Tank *pTank)
 
 void renderBonus(void)
 {
-    if(IS_TIMER_TICKING(&bonus.lifetimeTimer))
+    if(!isTimerUp(&bonus.lifetimeTimer))
     {
-        if(!IS_TIMER_TICKING(&bonus.blinkTimer))
+        if(isTimerUp(&bonus.blinkTimer))
         {
-            TIMER_SET(&bonus.blinkTimer, BONUS_BLINK_INTERVAL_MS);
+            setTimer(&bonus.blinkTimer, BONUS_BLINK_INTERVAL_MS);
             bonus.isVisible = !bonus.isVisible;
         }
 
         if(bonus.isVisible)
-            SDL_RenderCopy(ctx.pRen, bonus.pTex, NULL, &bonus.rect);
+            SDL_RenderCopy(cfg.pRen, bonus.pTex, NULL, &bonus.rect);
 
     }
 }
 
+void pre_runPlayState(void)
+{
+    //build the terrain
+    terrainBuilders[cfg.Level - 1]();
+
+    //init the tank objects
+    initTankArray();
+ 
+    initBullets();
+
+    //Init the bonus structure and the bonus handler array
+    initBonus();
+
+    cfg.enemiesLeft = 20;
+
+	Mix_PlayMusic(rsmgrGetMusic(MUSIC_ID_IDLE), -1);
+
+	//Last thing to do
+	fsm.states[FSM_PLAY_STATE].run = runPlayState;
+}
+
+void goToGameOverState(void)
+{
+	Mix_HaltMusic();
+	fsm.states[FSM_PLAY_STATE].run = pre_runPlayState;
+	fsm.currentState = FSM_GAMEOVER_STATE;
+}
