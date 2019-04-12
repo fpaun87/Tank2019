@@ -3,6 +3,7 @@
 #include "fsm.h"
 #include "util.h"
 #include "resource_mgr.h"
+#include "queue.h"
 
 extern FSM fsm;
 extern Config cfg;
