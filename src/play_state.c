@@ -19,11 +19,14 @@ void initScoreLabelArray(void);
 void pre_runPlayState(void);
 void goToGameOverState(void);
 void drawForest(void);
+void updateTanks(void);
+bool tankTerrainCollision(Tank* pTank, SDL_Rect *pRect);
 
 /* Terrain building functions */
 void buildTerrain1(void);
 
-/* The array of function pointers that point to
+/*
+ * The array of function pointers that point to
  * functions which build the terrain for each level
  */
 typedef void (*BuildTerrainFuncPtr) (void);
@@ -42,6 +45,7 @@ Bonus bonus;
 
 /* Prototypes for the bonus functions */
 void initBonus(void);
+
 /*
  * void handleBonusStar(Tank *pTank);
  * void handleBonusTank(Tank *pTank);
@@ -64,7 +68,7 @@ void updateTanks(void)
 
     for(int i = 0; i < MAX_TANKS; i++)
     {
-        outOfScene = false;
+        //outOfScene = false;
         hitsTank = false;
         hitsTerrain = false;
         pTank = &tank_array[i];
@@ -85,53 +89,7 @@ void updateTanks(void)
             continue;
         }
 
-        pNewPos = moveTank(pTank);
-
-        //don't go out of bounds
-        if(!isInScene(pNewPos))
-            outOfScene = true;
-
-        //check collision with the other tanks
-        for(int j = 0; j < MAX_TANKS; j++)
-        {
-            if(i == j)
-                continue;
-
-            if(!tank_array[j].enabled)
-                continue;
-
-            if(SDL_HasIntersection(pNewPos, &tank_array[j].rect) == SDL_TRUE)
-            {
-                hitsTank = true;
-                break;
-            }
-        }
-
-        //check collision with terrain
-        for(int m = 0; m < MAX_TERRAIN_TILES; m++)
-        {
-            if((map[m].pTex == NULL) || (map[m].type == TERRAIN_ICE) || (map[m].type == TERRAIN_FOREST)) 
-                continue;
-
-            if((map[m].type == TERRAIN_WATER) && pTank->hasBoat)
-                continue;
-
-            if(SDL_HasIntersection(pNewPos, &map[m].rect) == SDL_TRUE)
-            {
-                hitsTerrain = true;
-                break;
-            }
-        }
-                
-        if(!outOfScene && !hitsTank && !hitsTerrain)
-        {
-            pTank->rect.x = pNewPos->x;
-            pTank->rect.y = pNewPos->y;
-            
-            
-        }
-
-        //Even if we don't update the tank position, we alwasys update the orientation
+        //Even if we don't update the tank position, we always update the orientation
         switch(pTank->currMe)
         {
            case ME_STOP:
@@ -157,6 +115,40 @@ void updateTanks(void)
                printf("FATAL ERROR: %s, %d\n", __FUNCTION__, __LINE__);
                break;
         } 
+
+        pNewPos = moveTank(pTank);
+
+        //don't go out of bounds
+        if(!isInScene(pNewPos))
+			continue;
+            //outOfScene = true;
+
+        //check collision with the other tanks
+        for(int j = 0; j < MAX_TANKS; j++)
+        {
+            if(i == j)
+                continue;
+
+            if(!tank_array[j].enabled)
+                continue;
+
+            if(SDL_HasIntersection(pNewPos, &tank_array[j].rect) == SDL_TRUE)
+            {
+                hitsTank = true;
+                break;
+            }
+        }
+
+        //check collision with terrain
+		//Let's change this into a function
+		hitsTerrain = tankTerrainCollision(pTank, pNewPos);
+                
+        if(/*!outOfScene && */ !hitsTank && !hitsTerrain)
+        {
+            pTank->rect.x = pNewPos->x;
+            pTank->rect.y = pNewPos->y;
+        }
+
         fireTank(pTank);
 
     }
@@ -245,11 +237,11 @@ void renderPlayState(void)
     SDL_RenderFillRect(cfg.pRen, &scene);
     //Draw the terrain
     drawTerrain();
-    //Render the tanks
-    renderTanks();
     //Render all the enabled bullets
     renderBullets();
-	//Rendere the forest
+    //Render the tanks
+    renderTanks();
+	//Render the forest
 	drawForest();
     //Render the bonus
     renderBonus();
@@ -419,34 +411,8 @@ void fireTank(Tank *pTank)
     }
 
     bullet_array[i].angle = pTank->angle;
-
-    switch((int)pTank->angle)
-    {
-        case 0:
-            bullet_array[i].rect.x = pTank->rect.x + (tw - bw)/2;
-            bullet_array[i].rect.y = pTank->rect.y - bw; 
-            break;
-
-        case 90:
-            bullet_array[i].rect.x = pTank->rect.x + tw;
-            bullet_array[i].rect.y = pTank->rect.y + (tw - bw)/2;
-            break;
-
-        case 180:
-            bullet_array[i].rect.x = pTank->rect.x + (tw - bw)/2;
-            bullet_array[i].rect.y = pTank->rect.y + tw;
-            break;
-
-        case 270:
-            bullet_array[i].rect.x = pTank->rect.x - bw;
-            bullet_array[i].rect.y = pTank->rect.y + (tw - bw)/2;
-            break;
-
-        //That's very bad
-        default:
-            printf("FATAL ERROR: %s, %d\n", __FUNCTION__, __LINE__);
-            break;
-    }
+	bullet_array[i].rect.x = pTank->rect.x + (tw - bw)/2;
+	bullet_array[i].rect.y = pTank->rect.y + (tw - bw)/2;
     bullet_array[i].enabled = true;
     bullet_array[i].tankId = pTank->id;
     pTank->fe = FE_NONE;
@@ -542,6 +508,10 @@ void updateBullets()
         {
             if(!tank_array[m].enabled)
                 continue;
+
+			//If you're hit by your own bullet, nothing happens
+			if(bullet_array[i].tankId == tank_array[m].id)
+				continue;
 
             if(SDL_HasIntersection(&bullet_array[i].rect, &tank_array[m].rect) != SDL_TRUE)
                 continue;
@@ -912,7 +882,7 @@ void buildTerrain1(void)
 	map[i].rect.h = 64; 
 	map[i].pTex = rsmgrGetTexture(TEX_ID_ICE);
 	map[i].type = TERRAIN_ICE;
-	i += 3;
+	i += 4;
 
 	map[i].rect.x = SCENE_TOP_LEFT_X + 5*64;
 	map[i].rect.y = 4*64;
@@ -1054,7 +1024,7 @@ void buildTerrain1(void)
 	map[i].rect.h = 64; 
 	map[i].pTex = rsmgrGetTexture(TEX_ID_SHIELD);
 	map[i].type = TERRAIN_SHIELD;
-	i += 4;
+	i += 5;
 
 	map[i].rect.x = SCENE_TOP_LEFT_X + 5*64;
 	map[i].rect.y = 7*64 + 32;
@@ -1078,7 +1048,7 @@ void buildTerrain1(void)
 	map[i].rect.h = 32; 
 	map[i].pTex = rsmgrGetTexture(TEX_ID_BRICK);
 	map[i].type = TERRAIN_BRICK;
-	i += 4;
+	i += 5;
 
 	map[i].rect.x = SCENE_TOP_LEFT_X + 12*64;
 	map[i].rect.y = 7*64;
@@ -1572,6 +1542,7 @@ void setTankLevel(Tank* pTank, int level)
     pTank->pTex = rsmgrGetTexture(texId);
 }
 
+/* Maybe this should return a bool? */
 void handleBulletTankCollision(Bullet *pBullet, Tank *pTank)
 {
     //If 2 enemies shoot eachother nothing happens
@@ -1589,7 +1560,6 @@ void handleBulletTankCollision(Bullet *pBullet, Tank *pTank)
     //If an enemy is hit by a player's bullet
     if((pBullet->tankId != TANK_ID_ENEMY) && (pTank->id == TANK_ID_ENEMY))
         return enemyTankHitByPlayerBullet(pTank);
-
 }
 
 void playerTankHitByEnemyBullet(Tank *pTank)
@@ -1839,3 +1809,72 @@ void goToGameOverState(void)
 	fsm.states[FSM_PLAY_STATE].run = pre_runPlayState;
 	fsm.currentState = FSM_GAMEOVER_STATE;
 }
+
+/* This determines if the tank hits the terrain */
+bool tankTerrainCollision(Tank* pTank, SDL_Rect* pRect)
+{
+	/* Evaluate the line and column of 2 corners depending on the direction */
+	int line1 = 0, col1 = 0, line2 = 0, col2 = 0;
+
+	switch(pTank->currMe)
+	{
+		case ME_LEFT:
+			line1 = pRect->y/64;	
+			col1 = (pRect->x - SCENE_TOP_LEFT_X)/64;	
+			line2 = (pRect->y + pRect->w - 1)/64;	
+			col2 = col1;
+			break;
+
+		case ME_RIGHT:
+			line1 = pRect->y/64;
+			col1 = (pRect->x - SCENE_TOP_LEFT_X + pRect->w - 1)/64;	
+			line2 = (pRect->y + pRect->w - 1)/64;
+			col2 = col1;
+			break;
+
+		case ME_UP:
+			line1 = pRect->y/64;	
+			col1 = (pRect->x - SCENE_TOP_LEFT_X)/64;	
+			line2 = line1;
+			col2 = (pRect->x - SCENE_TOP_LEFT_X + pRect->w - 1)/64;	
+			break;
+
+		case ME_DOWN:
+			line1 = (pRect->y + pRect->w - 1)/64;
+			col1 = (pRect->x - SCENE_TOP_LEFT_X)/64;
+			line2 = line1;
+			col2 = (pRect->x - SCENE_TOP_LEFT_X + pRect->w - 1)/64;
+			break;
+
+		case ME_STOP:
+			return false;
+	}
+
+	/* As soon as you detect a collision, return */
+	if((map[line1 * 13 + col1].type == TERRAIN_BRICK)  ||
+       (map[line1 * 13 + col1].type == TERRAIN_SHIELD) ||
+       (map[line1 * 13 + col1].type == TERRAIN_EAGLE)  ||
+	   ((map[line1 * 13 + col1].type == TERRAIN_WATER) && !pTank->hasBoat))
+    {
+            if(SDL_HasIntersection(pRect, &map[line1 * 13 + col1].rect) == SDL_TRUE)
+            {
+				pTank->currMe = ME_STOP;
+				return true;
+            }
+    }
+
+	if((map[line2 * 13 + col2].type == TERRAIN_BRICK)  ||
+       (map[line2 * 13 + col2].type == TERRAIN_SHIELD) ||
+       (map[line2 * 13 + col2].type == TERRAIN_EAGLE)  ||
+	   ((map[line2*13 + col2].type == TERRAIN_WATER) && !pTank->hasBoat))
+	{
+            if(SDL_HasIntersection(pRect, &map[line2 * 13 + col2].rect) == SDL_TRUE)
+            {
+				pTank->currMe = ME_STOP;
+				return true;
+            }
+	}
+
+	return false;
+}
+

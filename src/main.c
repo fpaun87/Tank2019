@@ -72,7 +72,7 @@ bool appInit(void)
     SDL_ShowCursor(SDL_DISABLE);
 
     //Create a SDL window 
-    cfg.pWin = SDL_CreateWindow("Tank2019", WND_TOP_LEFT_X, WND_TOP_LEFT_Y, WND_WIDTH, WND_HEIGHT,                                                                                 SDL_WINDOW_SHOWN);
+    cfg.pWin = SDL_CreateWindow("Tank2019", WND_TOP_LEFT_X, WND_TOP_LEFT_Y, WND_WIDTH, WND_HEIGHT, SDL_WINDOW_SHOWN);
     if(!cfg.pWin)
     {
         printf("SDL window could not be created! %s\n", SDL_GetError());
