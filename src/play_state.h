@@ -15,23 +15,24 @@
 #define SCORE_LABEL_INTERVAL_MSEC 2000
 
 enum TerrainType {TERRAIN_NONE, TERRAIN_SHIELD, TERRAIN_FOREST, TERRAIN_WATER, TERRAIN_ICE, TERRAIN_BRICK, TERRAIN_EAGLE};
-enum TankID {TANK_ID_PLAYER1, TANK_ID_PLAYER2, TANK_ID_ENEMY};
+
+enum DriverType {HUMAN_DRIVER, CPU_DRIVER};
+enum TankId {TANKID_PLAYER1, TANKID_PLAYER2, TANKID_ENEMY};
 
 typedef struct Tank{
     SDL_Rect rect;
-    SDL_Rect tempRect;
     SDL_Texture *pTex;
     float angle;
     uint32_t speed;
-    uint32_t fireHoldout;
-    Timer timer;
-    Timer *pTimer;
+    bool canFire;
+    Timer timer; //this could be useful later
     enum MoveEvent newMe;
     enum MoveEvent currMe;
     enum FireEvent fe;
-    enum TankID id;
     bool enabled;
     bool hasBoat;
+	enum DriverType driver;
+	enum TankId id;
     int level;
     int hp;
 }Tank;
@@ -41,7 +42,7 @@ typedef struct Bullet{
     SDL_Texture *pTex;
     float angle;
     uint32_t speed;
-    enum TankID tankId;
+    Tank *pOwner;	//the tank that released the bullet
     bool enabled;
 }Bullet;
 
@@ -51,10 +52,9 @@ typedef struct TerrainTile{
     enum TerrainType type;
 }TerrainTile;
 
-typedef struct Player{
-    int lives;
-    int score;
-    Tank* pTank;
+typedef struct Player {
+	int lives;
+	int score;
 }Player;
 
 typedef struct ScoreLabel{
@@ -80,7 +80,8 @@ typedef struct Bonus{
 void updateTanks(void);
 SDL_Rect* moveTank(Tank *pTank);
 void fireTank(Tank *pTank);
-bool initTank(Tank *pTank, int texId, int x, int y, float angle, enum TankID id);
+bool initTank(Tank *pTank, int level, int x, int y, float angle,
+			 enum DriverType type, enum TankId id);
 bool initTankArray(void);
 bool initBullets(void);
 void updateBullets(void);
@@ -94,8 +95,8 @@ void updatePlayState(void);
 bool initPlayState(void);
 void handleInputPlayState(void);
 void renderPlayState(void);
-void moveTankByGamepad(Tank *pTank);
-void moveTankByKeyboard(Tank *pTank);
+void movePlayer1Tank(void);
+void movePlayer2Tank(void);
 void renderPlayState(void);
 void handleGameOver(void);
 void renderGameOver(void);

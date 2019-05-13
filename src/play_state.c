@@ -10,9 +10,10 @@ extern bool quit;
 
 void runPlayState(void);
 void setTankLevel(Tank* pTank, int level);
-void handleBulletTankCollision(Bullet *pBullet, Tank *pTank);
+int handleBulletTankCollision(Bullet *pBullet);
+int handleBulletTerrainCollision(Bullet *pBullet);
 void playerTankHitByEnemyBullet(Tank *pTank);
-void enemyTankHitByPlayerBullet(Tank *pTank);
+void enemyTankHitByPlayerBullet(Tank *pAttacker, Tank *pVictim);
 bool activateScoreLabel(Tank *pTank);
 void renderScoreLabelArray(void);
 void initScoreLabelArray(void);
@@ -33,15 +34,14 @@ typedef void (*BuildTerrainFuncPtr) (void);
 BuildTerrainFuncPtr terrainBuilders[50] = { buildTerrain1, 0 };
 
 Tank tank_array[MAX_TANKS];
-Player p1 = {2, 0, &tank_array[0]};
-Player p2 = {2, 0, &tank_array[1]};
 Bullet bullet_array[MAX_BULLETS];
 SDL_Rect scene;
 TerrainTile map[MAX_TERRAIN_TILES];
 ScoreLabel scoreLabelArray[MAX_SCORE_LABELS];
 BonusHandlerFuncPtr bonusHandlerArray[7];
 Bonus bonus; 
-
+Player p1 = {2,0};
+Player p2 = {2,0};
 
 /* Prototypes for the bonus functions */
 void initBonus(void);
@@ -209,8 +209,8 @@ void handleInputPlayState(void)
     }
 
     //Let's query the input devices
-    moveTankByKeyboard(p1.pTank);
-    moveTankByGamepad(p2.pTank);
+    movePlayer1Tank();
+    movePlayer2Tank();
 }
 
 void runPlayState(void)
@@ -269,8 +269,9 @@ void renderPlayState(void)
 
 }
 
-void moveTankByKeyboard(Tank *pTank)
+void movePlayer1Tank(void)
 {
+	Tank *pTank = &tank_array[0];
     static const Uint8* currentKeyStates = NULL;
 
     currentKeyStates = SDL_GetKeyboardState(NULL);
@@ -304,8 +305,9 @@ void moveTankByKeyboard(Tank *pTank)
     pTank->newMe = ME_STOP;
 }
 
-void moveTankByGamepad(Tank *pTank)
+void movePlayer2Tank(void)
 {
+	Tank *pTank = &tank_array[1];
     if(SDL_GameControllerGetButton(cfg.pGameCtrl, SDL_CONTROLLER_BUTTON_A)){
         pTank->fe = FE_FIRE;
     }
@@ -389,7 +391,7 @@ void fireTank(Tank *pTank)
         return;
 
     //You can't fire when the timer is ticking
-    if(!isTimerUp(pTank->pTimer))
+    if(!pTank->canFire)
     {
         pTank->fe = FE_NONE;
         return;
@@ -414,31 +416,34 @@ void fireTank(Tank *pTank)
 	bullet_array[i].rect.x = pTank->rect.x + (tw - bw)/2;
 	bullet_array[i].rect.y = pTank->rect.y + (tw - bw)/2;
     bullet_array[i].enabled = true;
-    bullet_array[i].tankId = pTank->id;
+    bullet_array[i].pOwner = pTank;
     pTank->fe = FE_NONE;
 
     //reset the fire timer after each successfull shot
-    setTimer(pTank->pTimer, pTank->fireHoldout);
+    pTank->canFire = false;
 
     //Play the fire sound
     Mix_PlayChannel(-1, rsmgrGetChunk(CHUNK_ID_FIRE), 0);
 }
 
-bool initTank(Tank *pTank, int level, int x, int y, float angle, enum TankID id)
+bool initTank(Tank *pTank, int level, int x, int y, float angle,
+			 enum DriverType driver, enum TankId id)
 {
     memset(pTank, 0, sizeof(Tank));
 
+	pTank->id = id;
     setTankLevel(pTank, level);
     pTank->rect.x = x;
     pTank->rect.y = y;
     pTank->speed = DEFAULT_TANK_SPEED; //pixels per frame
     pTank->angle = angle;
-    pTank->pTimer = &pTank->timer;
     pTank->newMe = ME_STOP;
     pTank->currMe = ME_STOP;
     pTank->fe = FE_NONE;
     pTank->enabled = true;
-    pTank->id = id;
+	pTank->hp = level;
+	pTank->driver = driver;
+	pTank->canFire = true;
     SDL_QueryTexture(pTank->pTex, NULL, NULL, &pTank->rect.w, &pTank->rect.h);
     return true;
 }
@@ -466,7 +471,7 @@ bool initBullets(void)
 
 void updateBullets()
 {
-    bool hitsSomething = false;
+    int hits= 0;
 
     for(int i = 0; i < MAX_BULLETS; i++)
     {
@@ -500,27 +505,12 @@ void updateBullets()
         if(!isInScene(&bullet_array[i].rect))
         {
             bullet_array[i].enabled = false;
+			bullet_array[i].pOwner->canFire = true;
             break;
         }
 
         //Check collisions with tanks
-        for(int m  = 0; m < MAX_TANKS; m++)
-        {
-            if(!tank_array[m].enabled)
-                continue;
-
-			//If you're hit by your own bullet, nothing happens
-			if(bullet_array[i].tankId == tank_array[m].id)
-				continue;
-
-            if(SDL_HasIntersection(&bullet_array[i].rect, &tank_array[m].rect) != SDL_TRUE)
-                continue;
-
-            hitsSomething = true;
-
-            //handle bullet-tank collision
-            handleBulletTankCollision(&bullet_array[i], &tank_array[m]);
-        }
+		hits += handleBulletTankCollision(&bullet_array[i]);
 
         /*Destroy the bullets that hit other bullets*/
         for(int j = 0; j < MAX_BULLETS; j++)
@@ -534,37 +524,18 @@ void updateBullets()
             if(SDL_HasIntersection(&bullet_array[i].rect, &bullet_array[j].rect) == SDL_TRUE)
             {
                 bullet_array[j].enabled = false;
-                hitsSomething = true;
+				bullet_array[j].pOwner->canFire = true;
+                hits++;
             }
         }
 
         //Destroy bullets that hit terrain.
-        for(int k = 0; k < MAX_TERRAIN_TILES; k++)
-        {
-            if((map[k].type != TERRAIN_BRICK) && (map[k].type != TERRAIN_SHIELD) && (map[k].type != TERRAIN_EAGLE))
-                continue;
+		hits += handleBulletTerrainCollision(&bullet_array[i]);
 
-            if(SDL_HasIntersection(&bullet_array[i].rect, &map[k].rect) == SDL_TRUE)
-            {
-                if(map[k].type == TERRAIN_EAGLE)
-                {
-                    map[k].pTex = rsmgrGetTexture(TEX_ID_DEAD_EAGLE);
-                    bullet_array[i].enabled = false;
-					goToGameOverState();
-					return;
-                }
-
-                map[k].pTex = NULL;
-                map[k].type = TERRAIN_NONE;
-                hitsSomething = true;
-            }
-            
-        }
-
-        if(hitsSomething)
+        if(hits)
             bullet_array[i].enabled = false;
 
-        hitsSomething = false;
+        hits = 0;
             
     }
 }
@@ -611,20 +582,26 @@ bool initTankArray(void)
 {
     memset(tank_array, 0, sizeof(tank_array));
 
-    if(!initTank(&tank_array[0], 4, SCENE_TOP_LEFT_X + 4*64, SCENE_HEIGHT-64, 0.0f, TANK_ID_PLAYER1))
+    if(!initTank(&tank_array[0], 1, SCENE_TOP_LEFT_X + 4*64, SCENE_HEIGHT-64, 0.0f,
+		HUMAN_DRIVER, TANKID_PLAYER1))
         return false;
 
-    if(!initTank(&tank_array[1], 1, SCENE_TOP_LEFT_X + 8*64, SCENE_HEIGHT-64, 0.0f, TANK_ID_PLAYER2))
+    if(!initTank(&tank_array[1], 1, SCENE_TOP_LEFT_X + 8*64, SCENE_HEIGHT-64, 0.0f,
+		HUMAN_DRIVER, TANKID_PLAYER2))
         return false;
     
     if(cfg.players == 1)
         tank_array[1].enabled = false; 
     
     //Init the first batch of enemy tanks
-    initTank(&tank_array[2], 4, SCENE_TOP_LEFT_X, SCENE_TOP_LEFT_Y, 180.0f, TANK_ID_ENEMY);
-    initTank(&tank_array[3], 4, SCENE_TOP_LEFT_X + 6*64, SCENE_TOP_LEFT_Y, 180.0f, TANK_ID_ENEMY);
-    initTank(&tank_array[4], 4, SCENE_TOP_LEFT_X + 12*64, SCENE_TOP_LEFT_Y, 180.0f, TANK_ID_ENEMY);
-    initTank(&tank_array[5], 4, SCENE_TOP_LEFT_X + 6*64, SCENE_TOP_LEFT_Y + 2*64, 180.0f, TANK_ID_ENEMY);
+    initTank(&tank_array[2], 1, SCENE_TOP_LEFT_X, SCENE_TOP_LEFT_Y, 180.0f,
+				CPU_DRIVER, TANKID_ENEMY);
+    initTank(&tank_array[3], 1, SCENE_TOP_LEFT_X + 6*64, SCENE_TOP_LEFT_Y, 180.0f,
+				CPU_DRIVER, TANKID_ENEMY);
+    initTank(&tank_array[4], 1, SCENE_TOP_LEFT_X + 12*64, SCENE_TOP_LEFT_Y, 180.0f,
+				CPU_DRIVER, TANKID_ENEMY);
+    initTank(&tank_array[5], 1, SCENE_TOP_LEFT_X + 6*64, SCENE_TOP_LEFT_Y + 2*64, 180.0f,
+				CPU_DRIVER, TANKID_ENEMY);
 
     return true;
 }
@@ -1499,67 +1476,63 @@ void drawForest(void)
     }
 }
 
-
+/* TODO: THIS MAY NEED TO BE FIXED */
 void setTankLevel(Tank* pTank, int level)
 {
     int texId;
     pTank->level = level;
-    pTank->hp = level;
-    switch(level)
-    {
-        case 1:
-        pTank->fireHoldout = 500;
-            break;
 
-        case 2:
-        pTank->fireHoldout = 500;
-            break;
-
-        case 3:
-        pTank->fireHoldout = 200;
-            break;
-
-        case 4:
-        pTank->fireHoldout = 200;
-            break;
-
-        default:
-            printf("YOU REALLY SCREWED THINGS UP! %s, %d\n", __FUNCTION__, __LINE__);
-            return;
-    }
-
-    if(pTank == p1.pTank)
+    if(pTank->id == TANKID_PLAYER1)
         texId = TEX_ID_PLAYER1_LEVEL1;
-
     
-    if(pTank == p2.pTank)
+    if(pTank->id == TANKID_PLAYER2)
         texId = TEX_ID_PLAYER2_LEVEL1;
 
-    if((pTank != p1.pTank) && (pTank != p2.pTank))
+    if(pTank->id == TANKID_ENEMY)
         texId = TEX_ID_ENEMY_LEVEL1;
 
-    texId += (level - 1);
     pTank->pTex = rsmgrGetTexture(texId);
 }
 
-/* Maybe this should return a bool? */
-void handleBulletTankCollision(Bullet *pBullet, Tank *pTank)
+int handleBulletTankCollision(Bullet *pBullet)
 {
-    //If 2 enemies shoot eachother nothing happens
-    if((pBullet->tankId == TANK_ID_ENEMY) && (pTank->id == TANK_ID_ENEMY))
-        return;
+	Tank *pTank = NULL; //for convenience
+	bool hits = 0;
+	for(int m  = 0; m < MAX_TANKS; m++)
+	{
+		pTank = &tank_array[m];
 
-    //If the players shoot eachother nothing happens
-    if((pBullet->tankId != TANK_ID_ENEMY) && (pTank->id != TANK_ID_ENEMY))
-        return;
+		/* We don't care about collision with disabled tanks */
+		if(!pTank->enabled)
+			continue;
 
-    //If a player is hit by an enemy bullet
-    if((pBullet->tankId == TANK_ID_ENEMY) && (pTank->id != TANK_ID_ENEMY))
-        return playerTankHitByEnemyBullet(pTank);
+		if(SDL_HasIntersection(&pBullet->rect, &pTank->rect) != SDL_TRUE)
+			continue;
 
-    //If an enemy is hit by a player's bullet
-    if((pBullet->tankId != TANK_ID_ENEMY) && (pTank->id == TANK_ID_ENEMY))
-        return enemyTankHitByPlayerBullet(pTank);
+		//If you're hit by your own bullet, nothing happens
+		if(pBullet->pOwner == pTank)
+			continue;
+
+		//If a player is hit by an enemy bullet
+		if((pBullet->pOwner->driver == CPU_DRIVER) && (pTank->driver == HUMAN_DRIVER))
+		{
+			hits++;
+			playerTankHitByEnemyBullet(pTank);
+			continue;
+		}
+
+		//If an enemy is hit by a player's bullet
+		if((pBullet->pOwner->driver == HUMAN_DRIVER) && (pTank->driver == CPU_DRIVER))
+		{
+			hits++;
+			enemyTankHitByPlayerBullet(pBullet->pOwner, pTank);
+			continue;
+		}
+
+	}
+
+	return hits;
+
 }
 
 void playerTankHitByEnemyBullet(Tank *pTank)
@@ -1573,42 +1546,37 @@ void playerTankHitByEnemyBullet(Tank *pTank)
         return;
     }
 
-    //If hp drops to zero, so the player tank is dead
+    //this should be moved to a function that checks for the
+	// victory conditions
     pTank->enabled = false;
-    if(pTank->id == TANK_ID_PLAYER1)
-    {
-        p1.lives--;
-        return;
-    }
+	if(pTank->id == TANKID_PLAYER1)
+		p1.lives --;
 
+	if(pTank->id == TANKID_PLAYER2)
+		p2.lives --;
 
-    if(pTank->id == TANK_ID_PLAYER2)
-    {
-        p2.lives--;
-        return;
-    }
 }
 
-void enemyTankHitByPlayerBullet(Tank *pTank)
+void enemyTankHitByPlayerBullet(Tank *pAttacker, Tank *pVictim)
 {
-    pTank->hp--;
+    pVictim->hp--;
 
-    //If the tank is till alive
-    if(pTank->hp)
+    //If the victim is till alive
+    if(pVictim->hp)
         return;
 
-    pTank->enabled = false;
+    pVictim->enabled = false;
     cfg.enemiesLeft--;
 
-    if(pTank->id == TANK_ID_PLAYER1)
-        p1.score += pTank->level * 100;
+    if(pAttacker->id == TANKID_PLAYER1)
+        p1.score += pVictim->level * 100;
 
+    if(pAttacker->id == TANKID_PLAYER2)
+        p2.score += pVictim->level * 100;
 
-    if(pTank->id == TANK_ID_PLAYER2)
-        p2.score += pTank->level * 100;
-
+	pAttacker->canFire = true;
     //Activate a score label
-    activateScoreLabel(pTank);
+    activateScoreLabel(pVictim);
 }
 
 
@@ -1720,11 +1688,11 @@ void handleBonusTank(Tank *pTank)
 {
     switch(pTank->tankId)
     {
-        case TANK_ID_PLAYER1:
+        case TANKID_PLAYER1:
             p1.lives++;
             break;
 
-        case TANK_ID_PLAYER2:
+        case TANKID_PLAYER2:
             p2.lives++;
             break;
 
@@ -1878,3 +1846,79 @@ bool tankTerrainCollision(Tank* pTank, SDL_Rect* pRect)
 	return false;
 }
 
+int handleBulletTerrainCollision(Bullet *pBullet)
+{
+	bool hit = false;
+	/* Evaluate the line and column of 2 corners depending on the direction */
+	int line1 = 0, col1 = 0, line2 = 0, col2 = 0;
+
+	switch((int)pBullet->angle)
+	{
+		case 270:
+			line1 = pBullet->rect.y/64;	
+			col1 = (pBullet->rect.x - SCENE_TOP_LEFT_X)/64;	
+			line2 = (pBullet->rect.y + pBullet->rect.w - 1)/64;	
+			col2 = col1;
+			break;
+
+		case 90:
+			line1 = pBullet->rect.y/64;
+			col1 = (pBullet->rect.x - SCENE_TOP_LEFT_X + pBullet->rect.w - 1)/64;	
+			line2 = (pBullet->rect.y + pBullet->rect.w - 1)/64;
+			col2 = col1;
+			break;
+
+		case 0:
+			line1 = pBullet->rect.y/64;	
+			col1 = (pBullet->rect.x - SCENE_TOP_LEFT_X)/64;	
+			line2 = line1;
+			col2 = (pBullet->rect.x - SCENE_TOP_LEFT_X + pBullet->rect.w - 1)/64;	
+			break;
+
+		case 180:
+			line1 = (pBullet->rect.y + pBullet->rect.w - 1)/64;
+			col1 = (pBullet->rect.x - SCENE_TOP_LEFT_X)/64;
+			line2 = line1;
+			col2 = (pBullet->rect.x - SCENE_TOP_LEFT_X + pBullet->rect.w - 1)/64;
+			break;
+
+		default:
+			return false;
+	}
+
+	/* If you hit the eagle go to game over state */
+	if((map[line1 * 13 + col1].type == TERRAIN_EAGLE) ||
+       (map[line2 * 13 + col2].type == TERRAIN_EAGLE))
+	{
+		map[162].pTex = rsmgrGetTexture(TEX_ID_DEAD_EAGLE);
+		pBullet->enabled = false;
+		goToGameOverState();
+		return true;
+	}
+
+	if((map[line1 * 13 + col1].type == TERRAIN_BRICK)  ||
+       (map[line1 * 13 + col1].type == TERRAIN_SHIELD))
+    {
+		if(SDL_HasIntersection(&pBullet->rect, &map[line1 * 13 + col1].rect) == SDL_TRUE)
+		{
+			map[line1 * 13 + col1].pTex = NULL;
+			map[line1 * 13 + col1].type = TERRAIN_NONE;
+			hit = true;
+			pBullet->pOwner->canFire = true;
+		}
+    }
+
+	if((map[line2 * 13 + col2].type == TERRAIN_BRICK)  ||
+       (map[line2 * 13 + col2].type == TERRAIN_SHIELD))
+	{
+		if(SDL_HasIntersection(&pBullet->rect, &map[line2 * 13 + col2].rect) == SDL_TRUE)
+		{
+			map[line2 * 13 + col2].pTex = NULL;
+			map[line2 * 13 + col2].type = TERRAIN_NONE;
+			pBullet->pOwner->canFire = true;
+			hit = true;
+		}
+	}
+
+	return hit;
+}
