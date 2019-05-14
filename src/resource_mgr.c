@@ -229,6 +229,9 @@ bool rsmgrInit(void)
     if(!loadTexture(TEX_ID_FLAG, SPRITE_PATH"/flag32.png"))
         return false;
 
+    if(!loadTexture(TEX_ID_TANK_ICON, SPRITE_PATH"/tank_icon.png"))
+        return false;
+
     /* Load fonts */
     if(!font2Tex(TEX_ID_PLAY_FONT,30, (SDL_Color){0, 40, 0, 255}))
             return false;

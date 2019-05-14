@@ -17,6 +17,8 @@ void enemyTankHitByPlayerBullet(Tank *pAttacker, Tank *pVictim);
 bool activateScoreLabel(Tank *pTank);
 void renderScoreLabelArray(void);
 void initScoreLabelArray(void);
+void initTankIconArray(void);
+void renderTankIconArray(void);
 void pre_runPlayState(void);
 void goToGameOverState(void);
 void drawForest(void);
@@ -34,6 +36,7 @@ typedef void (*BuildTerrainFuncPtr) (void);
 BuildTerrainFuncPtr terrainBuilders[50] = { buildTerrain1, 0 };
 
 Tank tank_array[MAX_TANKS];
+SDL_Rect tankIconArray[20] = {0};
 Bullet bullet_array[MAX_BULLETS];
 SDL_Rect scene;
 TerrainTile map[MAX_TERRAIN_TILES];
@@ -166,6 +169,9 @@ bool initPlayState(void)
     //init the score label array
     initScoreLabelArray();
 
+	//Init the tank icon array
+	initTankIconArray();
+
     //Create the fsm state
 	FSMState state;
     state.run = pre_runPlayState;
@@ -247,25 +253,27 @@ void renderPlayState(void)
     renderBonus();
     //Render the score labels
     renderScoreLabelArray();
+	//render the tank icons
+	renderTankIconArray();
     //Render the text
-    printfg(TEX_ID_PLAY_FONT, 1080, 400, "P I\n");
-	icon.y = 430;	
+    printfg(TEX_ID_PLAY_FONT, 1080, 500, "P I\n");
+	icon.y = 530;	
 	SDL_RenderCopy(cfg.pRen, rsmgrGetTexture(TEX_ID_HEALTH), NULL, &icon); 
-    printfg(TEX_ID_PLAY_FONT, 1126, 430, "%02d", p1.lives);
-	icon.y = 470;	
+    printfg(TEX_ID_PLAY_FONT, 1126, 530, "%02d", p1.lives);
+	icon.y = 570;	
 	SDL_RenderCopy(cfg.pRen, rsmgrGetTexture(TEX_ID_COIN), NULL, &icon); 
-    printfg(TEX_ID_PLAY_FONT, 1126, 470, "%06d", p1.score);
-	printfg(TEX_ID_PLAY_FONT, 1080, 530, "P II");
-	icon.y = 560;	
+    printfg(TEX_ID_PLAY_FONT, 1126, 570, "%06d", p1.score);
+	printfg(TEX_ID_PLAY_FONT, 1080, 630, "P II");
+	icon.y = 660;	
 	SDL_RenderCopy(cfg.pRen, rsmgrGetTexture(TEX_ID_HEALTH), NULL, &icon); 
-	printfg(TEX_ID_PLAY_FONT, 1126, 560, "%02d", p2.lives);
-	icon.y = 600;	
-	SDL_RenderCopy(cfg.pRen, rsmgrGetTexture(TEX_ID_COIN), NULL, &icon); 
-	printfg(TEX_ID_PLAY_FONT, 1126, 600, "%06d", p2.score);
-
+	printfg(TEX_ID_PLAY_FONT, 1126, 660, "%02d", p2.lives);
 	icon.y = 700;	
+	SDL_RenderCopy(cfg.pRen, rsmgrGetTexture(TEX_ID_COIN), NULL, &icon); 
+	printfg(TEX_ID_PLAY_FONT, 1126, 700, "%06d", p2.score);
+
+	icon.y = 780;	
 	SDL_RenderCopy(cfg.pRen, rsmgrGetTexture(TEX_ID_FLAG), NULL, &icon); 
-    printfg(TEX_ID_PLAY_FONT, 1126, 700, "%02d", cfg.Level);
+    printfg(TEX_ID_PLAY_FONT, 1126, 780, "%02d", cfg.Level);
 
 }
 
@@ -1921,4 +1929,29 @@ int handleBulletTerrainCollision(Bullet *pBullet)
 	}
 
 	return hit;
+}
+
+void initTankIconArray(void)
+{
+	int startX = 1152;
+	int startY = 100;
+	int offset = 10;
+
+	for(int i = 0; i < 10; i++)
+	{
+		for(int j = 0; j < 2; j++)
+		{
+			tankIconArray[i*2+j].x = startX + j*(32 + offset) ;
+			tankIconArray[i*2+j].y = startY + i*32;
+			tankIconArray[i*2+j].w = 32;
+			tankIconArray[i*2+j].h = 32;
+		}
+	}
+}
+
+void renderTankIconArray(void)
+{
+	for(int i = cfg.enemiesLeft -1; i >= 0; i--)
+		SDL_RenderCopy(cfg.pRen, rsmgrGetTexture(TEX_ID_TANK_ICON), NULL, &tankIconArray[i]);
+
 }

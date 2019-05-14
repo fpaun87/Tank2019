@@ -5,7 +5,7 @@
 #include <SDL2/SDL_ttf.h>
 
 #define MAX_PATH_LEN 80
-#define MAX_TEX_RESOURCES 42
+#define MAX_TEX_RESOURCES 43
 #define MAX_MUSIC_RESOURCES 1
 #define MAX_CHUNK_RESOURCES 1
 #define RESOURCE_PATH "/home/florin/projects/c/tank2019/resources/"
@@ -56,6 +56,7 @@
 #define TEX_ID_HEALTH		   39
 #define TEX_ID_COIN			   40
 #define TEX_ID_FLAG			   41
+#define TEX_ID_TANK_ICON	   42
 
 //Music IDs
 #define MUSIC_ID_IDLE           0
