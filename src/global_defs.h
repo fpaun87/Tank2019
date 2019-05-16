@@ -17,6 +17,13 @@
 
 enum MoveEvent {ME_STOP, ME_LEFT, ME_DOWN, ME_UP, ME_RIGHT};
 enum FireEvent {FE_NONE, FE_FIRE};
+enum FSMStateId {
+    FSM_MENU_STATE,
+    FSM_LEVEL_STATE,
+    FSM_PLAY_STATE,
+    FSM_PAUSE_STATE,
+    FSM_GAMEOVER_STATE
+};
 
 typedef struct Config {
     SDL_Window *pWin;

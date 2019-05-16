@@ -1537,6 +1537,14 @@ int handleBulletTankCollision(Bullet *pBullet)
 			continue;
 		}
 
+		//If the 2 tanks from the same team hit eachother, nothing happens
+		if(pBullet->pOwner->driver == pTank->driver)
+		{
+			hits++;
+			pBullet->pOwner->canFire = true;
+			continue;
+		}
+
 	}
 
 	return hits;

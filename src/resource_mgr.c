@@ -245,7 +245,7 @@ bool rsmgrInit(void)
     if(!font2Tex(TEX_ID_LEVEL_FONT, 64, (SDL_Color){0, 0, 0, 255}))
             return false;
 
-    if(!font2Tex(TEX_ID_PAUSE_FONT, 64, (SDL_Color){0, 0, 128, 255}))
+    if(!font2Tex(TEX_ID_PAUSE_FONT, 64, (SDL_Color){170, 170, 255, 255}))
             return false;
 
     /* Load music */

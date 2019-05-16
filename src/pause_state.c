@@ -55,13 +55,23 @@ void handleInputPauseState(void)
 
 void renderPauseState(void)
 {
+	static SDL_Rect label = {
+		(WND_WIDTH - (strlen("PAUSE")+1)*64)/2,
+		(WND_HEIGHT - 2*64)/2,
+		(strlen("PAUSE")+1)*64,
+		2*64 };
+
     //First clear the renderer
     SDL_RenderClear(cfg.pRen);
 	renderPlayState();
 
 	if(renderText)
+	{
+		SDL_SetRenderDrawColor(cfg.pRen, 0,0,0,255);
+		SDL_RenderFillRect(cfg.pRen, &label);
 		printfg(TEX_ID_PAUSE_FONT, (WND_WIDTH - strlen("PAUSE") * 64)/2,
 			(WND_HEIGHT - 64)/2, "PAUSE");
+	}
 
     //Now update the screen (perhaps the buffers are now switched...)
     SDL_RenderPresent(cfg.pRen);
