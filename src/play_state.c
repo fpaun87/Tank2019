@@ -22,8 +22,13 @@ void renderTankIconArray(void);
 void pre_runPlayState(void);
 void goToGameOverState(void);
 void drawForest(void);
-void updateTanks(void);
 bool tankTerrainCollision(Tank* pTank, SDL_Rect *pRect);
+void tankReadAI(Tank *pTank);
+void runTankNormalState(Tank *pTank);
+void renderTankNormalState(Tank *pTank);
+void tankEmptyInput(Tank* pTank);
+void tankEmptyRun(Tank* pTank);
+void tankEmptyRender(Tank* pTank);
 
 /* Terrain building functions */
 void buildTerrain1(void);
@@ -61,100 +66,88 @@ void initBonus(void);
  */
 void renderBonus(void);
 
-void updateTanks(void)
+void runTankNormalState(Tank *pTank)
 {
     static SDL_Rect* pNewPos;
-    static Tank *pTank = NULL; //for convenience
     bool outOfScene = false;
     bool hitsTank = false;
     bool hitsTerrain = false;
 
-    for(int i = 0; i < MAX_TANKS; i++)
-    {
-        //outOfScene = false;
-        hitsTank = false;
-        hitsTerrain = false;
-        pTank = &tank_array[i];
-        if(!pTank->enabled)
-            continue;
 
-        /*
-         * Only read your new move event if your (x,y) is a 
-         * multiple of 16. This is for easy tank maneuvering
-         */
-        if(!(pTank->rect.x % 16) && !(pTank->rect.y % 16))
-            pTank->currMe = pTank->newMe;
+	/*
+	 * Only read your new move event if your (x,y) is a 
+	 * multiple of 16. This is for easy tank maneuvering
+	 */
+	if(!(pTank->rect.x % 16) && !(pTank->rect.y % 16))
+		pTank->currMe = pTank->newMe;
 
 
-        if(pTank->currMe == ME_STOP)
-        {
-            fireTank(pTank);
-            continue;
-        }
+	if(pTank->currMe == ME_STOP)
+	{
+		fireTank(pTank);
+		return;
+	}
 
-        //Even if we don't update the tank position, we always update the orientation
-        switch(pTank->currMe)
-        {
-           case ME_STOP:
-               break;
+	switch(pTank->currMe)
+	{
+	   case ME_STOP:
+		   break;
 
-           case ME_UP:
-               pTank->angle = 0.0f;
-               break;
-         
-           case ME_LEFT:
-               pTank->angle = 270.0f;
-               break;
-         
-           case ME_DOWN:
-               pTank->angle = 180.0f;
-               break;
-        
-           case ME_RIGHT:
-               pTank->angle = 90.0f;
-               break;
+	   case ME_UP:
+		   pTank->angle = 0.0f;
+		   break;
+	 
+	   case ME_LEFT:
+		   pTank->angle = 270.0f;
+		   break;
+	 
+	   case ME_DOWN:
+		   pTank->angle = 180.0f;
+		   break;
+	
+	   case ME_RIGHT:
+		   pTank->angle = 90.0f;
+		   break;
 
-           default:
-               printf("FATAL ERROR: %s, %d\n", __FUNCTION__, __LINE__);
-               break;
-        } 
+	   default:
+		   printf("FATAL ERROR: %s, %d\n", __FUNCTION__, __LINE__);
+		   break;
+	} 
 
-        pNewPos = moveTank(pTank);
+	pNewPos = moveTank(pTank);
 
-        //don't go out of bounds
-        if(!isInScene(pNewPos))
+	//don't go out of bounds
+	if(!isInScene(pNewPos))
+		return;
+
+	//check collision with the other tanks
+	for(int j = 0; j < MAX_TANKS; j++)
+	{
+		if(pTank == &tank_array[j])
 			continue;
-            //outOfScene = true;
 
-        //check collision with the other tanks
-        for(int j = 0; j < MAX_TANKS; j++)
-        {
-            if(i == j)
-                continue;
+		if(tank_array[j].fsm.currentState != TANK_NORMAL_STATE)
+			continue;
 
-            if(!tank_array[j].enabled)
-                continue;
+		if(SDL_HasIntersection(pNewPos, &tank_array[j].rect) == SDL_TRUE)
+		{
+			hitsTank = true;
+			break;
+		}
+	}
 
-            if(SDL_HasIntersection(pNewPos, &tank_array[j].rect) == SDL_TRUE)
-            {
-                hitsTank = true;
-                break;
-            }
-        }
+	//check collision with terrain
+	//Let's change this into a function
+	hitsTerrain = tankTerrainCollision(pTank, pNewPos);
+			
+	if(/*!outOfScene && */ !hitsTank && !hitsTerrain)
+	{
+		pTank->rect.x = pNewPos->x;
+		pTank->rect.y = pNewPos->y;
+	}
 
-        //check collision with terrain
-		//Let's change this into a function
-		hitsTerrain = tankTerrainCollision(pTank, pNewPos);
-                
-        if(/*!outOfScene && */ !hitsTank && !hitsTerrain)
-        {
-            pTank->rect.x = pNewPos->x;
-            pTank->rect.y = pNewPos->y;
-        }
+	fireTank(pTank);
 
-        fireTank(pTank);
-
-    }
 }
 
 bool initPlayState(void)
@@ -182,6 +175,7 @@ bool initPlayState(void)
 
 void handleInputPlayState(void)
 {
+	Tank *pTank = NULL;
     static SDL_Event event;
     //handle events on queue
     while(SDL_PollEvent(&event))
@@ -214,16 +208,26 @@ void handleInputPlayState(void)
         }
     }
 
-    //Let's query the input devices
-    movePlayer1Tank();
-    movePlayer2Tank();
+    /* read input for each tank */
+	for(int i = 0; i < MAX_TANKS; i++)
+	{
+		pTank = &tank_array[i];
+		pTank->fsm.states[pTank->fsm.currentState].input(pTank);
+	}
 }
 
 void runPlayState(void)
 {
+	Tank *pTank = NULL;
 	handleInputPlayState();
 
-	updateTanks();
+	/* Update all the tanks */
+    for(int i = 0; i < MAX_TANKS; i++)
+	{
+		pTank = &tank_array[i];
+		pTank->fsm.states[pTank->fsm.currentState].run(pTank);
+	}
+
 	updateBullets();
 
 	renderPlayState();
@@ -234,6 +238,7 @@ void runPlayState(void)
 
 void renderPlayState(void)
 {
+	Tank *pTank = NULL;
 	static SDL_Rect icon = {1080,0,32,32};
     //First clear the renderer
     SDL_SetRenderDrawColor(cfg.pRen, 128,128,128,255);
@@ -246,7 +251,11 @@ void renderPlayState(void)
     //Render all the enabled bullets
     renderBullets();
     //Render the tanks
-    renderTanks();
+	for(int i = 0; i < MAX_TANKS; i++)
+	{
+		pTank = &tank_array[i];
+		pTank->fsm.states[pTank->fsm.currentState].render(pTank);
+	}
 	//Render the forest
 	drawForest();
     //Render the bonus
@@ -277,9 +286,8 @@ void renderPlayState(void)
 
 }
 
-void movePlayer1Tank(void)
+void tankReadKeyboard(Tank *pTank)
 {
-	Tank *pTank = &tank_array[0];
     static const Uint8* currentKeyStates = NULL;
 
     currentKeyStates = SDL_GetKeyboardState(NULL);
@@ -313,9 +321,8 @@ void movePlayer1Tank(void)
     pTank->newMe = ME_STOP;
 }
 
-void movePlayer2Tank(void)
+void tankReadGamepad(Tank* pTank)
 {
-	Tank *pTank = &tank_array[1];
     if(SDL_GameControllerGetButton(cfg.pGameCtrl, SDL_CONTROLLER_BUTTON_A)){
         pTank->fe = FE_FIRE;
     }
@@ -448,11 +455,34 @@ bool initTank(Tank *pTank, int level, int x, int y, float angle,
     pTank->newMe = ME_STOP;
     pTank->currMe = ME_STOP;
     pTank->fe = FE_NONE;
-    pTank->enabled = true;
 	pTank->hp = level;
 	pTank->driver = driver;
 	pTank->canFire = true;
     SDL_QueryTexture(pTank->pTex, NULL, NULL, &pTank->rect.w, &pTank->rect.h);
+
+	/* Init the normal state */
+	switch(id)
+	{
+		case TANKID_PLAYER1:
+			pTank->fsm.states[TANK_NORMAL_STATE].input = tankReadKeyboard;
+			break;
+
+		case TANKID_PLAYER2:
+			pTank->fsm.states[TANK_NORMAL_STATE].input = tankReadGamepad;
+			break;
+
+		case TANKID_ENEMY:
+			pTank->fsm.states[TANK_NORMAL_STATE].input = tankReadAI;
+			break;
+	}
+	pTank->fsm.states[TANK_NORMAL_STATE].run = runTankNormalState;
+	pTank->fsm.states[TANK_NORMAL_STATE].render = renderTankNormalState;
+
+	/* Init the dead state */
+	pTank->fsm.states[TANK_DEAD_STATE].input = tankEmptyInput;
+	pTank->fsm.states[TANK_DEAD_STATE].run = tankEmptyRun;
+	pTank->fsm.states[TANK_DEAD_STATE].render = tankEmptyRender;
+	pTank->fsm.currentState = TANK_NORMAL_STATE;
     return true;
 }
 
@@ -548,14 +578,10 @@ void updateBullets()
     }
 }
 
-void renderTanks(void)
+void renderTankNormalState(Tank *pTank)
 {
-    for(int i = 0; i < MAX_TANKS; i++)
-    {
-        if(tank_array[i].enabled)
-            SDL_RenderCopyEx(cfg.pRen, tank_array[i].pTex, NULL, &tank_array[i].rect, 
-                            tank_array[i].angle, NULL, SDL_FLIP_NONE);
-    }
+	SDL_RenderCopyEx(cfg.pRen, pTank->pTex, NULL, &pTank->rect,
+					pTank->angle, NULL, SDL_FLIP_NONE);
 }
 
 void renderBullets(void)
@@ -594,14 +620,14 @@ bool initTankArray(void)
 		HUMAN_DRIVER, TANKID_PLAYER1))
         return false;
 
-    if(!initTank(&tank_array[1], 1, SCENE_TOP_LEFT_X + 8*64, SCENE_HEIGHT-64, 0.0f,
+	if(!initTank(&tank_array[1], 1, SCENE_TOP_LEFT_X + 8*64, SCENE_HEIGHT-64, 0.0f,
 		HUMAN_DRIVER, TANKID_PLAYER2))
-        return false;
-    
+		return false;
+
     if(cfg.players == 1)
-        tank_array[1].enabled = false; 
+		tank_array[1].fsm.currentState = TANK_DEAD_STATE;
     
-    //Init the first batch of enemy tanks
+    //Init the enemy tanks
     initTank(&tank_array[2], 1, SCENE_TOP_LEFT_X, SCENE_TOP_LEFT_Y, 180.0f,
 				CPU_DRIVER, TANKID_ENEMY);
     initTank(&tank_array[3], 1, SCENE_TOP_LEFT_X + 6*64, SCENE_TOP_LEFT_Y, 180.0f,
@@ -1510,8 +1536,8 @@ int handleBulletTankCollision(Bullet *pBullet)
 	{
 		pTank = &tank_array[m];
 
-		/* We don't care about collision with disabled tanks */
-		if(!pTank->enabled)
+		/* We don't care about collision with dead tanks */
+		if(pTank->fsm.currentState == TANK_DEAD_STATE)
 			continue;
 
 		if(SDL_HasIntersection(&pBullet->rect, &pTank->rect) != SDL_TRUE)
@@ -1551,6 +1577,7 @@ int handleBulletTankCollision(Bullet *pBullet)
 
 }
 
+/* TODO: THIS REQUIRES SERIOUS WORK */
 void playerTankHitByEnemyBullet(Tank *pTank)
 {
     pTank->hp--;
@@ -1564,7 +1591,6 @@ void playerTankHitByEnemyBullet(Tank *pTank)
 
     //this should be moved to a function that checks for the
 	// victory conditions
-    pTank->enabled = false;
 	if(pTank->id == TANKID_PLAYER1)
 		p1.lives --;
 
@@ -1581,7 +1607,7 @@ void enemyTankHitByPlayerBullet(Tank *pAttacker, Tank *pVictim)
     if(pVictim->hp)
         return;
 
-    pVictim->enabled = false;
+    pVictim->fsm.currentState = TANK_DEAD_STATE;
     cfg.enemiesLeft--;
 
     if(pAttacker->id == TANKID_PLAYER1)
@@ -1731,7 +1757,6 @@ void handleBonusBomb(Tank *pTank)
 {
     for(int i = 2; i < MAX_TANKS; i++)
     {
-        tankArray[i].enabled = false;
         activateScoreLabel(pTank);
     }
 }
@@ -1963,3 +1988,13 @@ void renderTankIconArray(void)
 		SDL_RenderCopy(cfg.pRen, rsmgrGetTexture(TEX_ID_TANK_ICON), NULL, &tankIconArray[i]);
 
 }
+
+/*
+ * This is the function through which the enemy tanks get their position 
+ * TODO: IMPLEMENT THIS
+ */
+void tankReadAI(Tank *pTank) {}
+
+void tankEmptyInput(Tank* pTank) {}
+void tankEmptyRun(Tank* pTank) {}
+void tankEmptyRender(Tank* pTank) {}

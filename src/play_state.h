@@ -20,6 +20,22 @@ enum TerrainType {TERRAIN_NONE, TERRAIN_SHIELD, TERRAIN_FOREST, TERRAIN_WATER, T
 enum DriverType {HUMAN_DRIVER, CPU_DRIVER};
 enum TankId {TANKID_PLAYER1, TANKID_PLAYER2, TANKID_ENEMY};
 
+/* Forward declaration */
+typedef struct Tank Tank;
+
+#define TANK_FSM_MAX_STATES 5
+typedef void (*TankFSMFuncPtr)(Tank* pTank);
+typedef struct TankState {
+	TankFSMFuncPtr input;
+	TankFSMFuncPtr run;
+	TankFSMFuncPtr render;
+}TankState;
+
+typedef struct TankFSM {
+	TankState states[TANK_FSM_MAX_STATES];
+	int currentState;
+}TankFSM;
+
 typedef struct Tank{
     SDL_Rect rect;
     SDL_Texture *pTex;
@@ -30,13 +46,15 @@ typedef struct Tank{
     enum MoveEvent newMe;
     enum MoveEvent currMe;
     enum FireEvent fe;
-    bool enabled;
     bool hasBoat;
 	enum DriverType driver;
 	enum TankId id;
     int level;
     int hp;
+	TankFSM fsm;
 }Tank;
+
+enum TankFsmState {TANK_NORMAL_STATE, TANK_DEAD_STATE, TANK_EXPLODING_STATE, TANK_SPAWN_STATE};
 
 typedef struct Bullet{
     SDL_Rect rect;
@@ -96,8 +114,8 @@ void updatePlayState(void);
 bool initPlayState(void);
 void handleInputPlayState(void);
 void renderPlayState(void);
-void movePlayer1Tank(void);
-void movePlayer2Tank(void);
+void tankReadKeyboard(Tank* pTank);
+void tankReadGamepad(Tank* pTank);
 void renderPlayState(void);
 void handleGameOver(void);
 void renderGameOver(void);
