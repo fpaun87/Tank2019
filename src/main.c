@@ -144,7 +144,9 @@ bool appInit(void)
     if(!initGameOverState())
         return false;
 
-    //initScoreState();
+	//Seed rand
+	srand(time(0));
+
     fsm.currentState = FSM_MENU_STATE;
     
     return true;

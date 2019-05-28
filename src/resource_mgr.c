@@ -232,6 +232,21 @@ bool rsmgrInit(void)
     if(!loadTexture(TEX_ID_TANK_ICON, SPRITE_PATH"/tank_icon.png"))
         return false;
 
+    if(!loadTexture(TEX_ID_ENEMY_TANK_SPAWN, SPRITE_PATH"/spawn.png"))
+        return false;
+
+    if(!loadTexture(TEX_ID_TANKL1_XRAY, SPRITE_PATH"/tankl1_xray.png"))
+        return false;
+
+    if(!loadTexture(TEX_ID_TANKL2_XRAY, SPRITE_PATH"/tankl2_xray.png"))
+        return false;
+
+    if(!loadTexture(TEX_ID_TANKL3_XRAY, SPRITE_PATH"/tankl3_xray.png"))
+        return false;
+
+    if(!loadTexture(TEX_ID_TANKL4_XRAY, SPRITE_PATH"/tankl4_xray.png"))
+        return false;
+
     /* Load fonts */
     if(!font2Tex(TEX_ID_PLAY_FONT,30, (SDL_Color){0, 40, 0, 255}))
             return false;

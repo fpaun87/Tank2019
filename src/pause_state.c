@@ -2,12 +2,15 @@
 #include "fsm.h"
 #include "util.h"
 #include "resource_mgr.h"
+#include "play_state.h"
 #include "timer.h"
 
 #define BLINK_INTERVAL_MS 500 //in seconds
 
 extern Config cfg;
 extern FSM fsm;
+extern Tank tank_array[MAX_TANKS];
+extern ScoreLabel scoreLabelArray[MAX_SCORE_LABELS];
 
 bool initPauseState(void);
 void handleInputPauseState(void);
@@ -42,6 +45,19 @@ void handleInputPauseState(void)
                     break;
 				*/
 				case SDLK_p:
+					//Resume all the timers
+					for(int i = 0; i < MAX_TANKS; i++)
+					{
+						resumeTimer(&tank_array[i].timer1);
+						resumeTimer(&tank_array[i].timer2);
+					}
+
+					//Pause the score label timers
+					for(int i = 0; i < MAX_SCORE_LABELS; i++)
+					{
+						resumeTimer(&scoreLabelArray[i].timer);
+					}
+
                     fsm.currentState = FSM_PLAY_STATE;
 					Mix_ResumeMusic();
 					break;
@@ -94,6 +110,20 @@ void pre_runPauseState(void)
 	//Set the timer
 	setTimer(&timer, BLINK_INTERVAL_MS);
 	renderText = true;
+
+	//Pause all the tank timers
+    for(int i = 0; i < MAX_TANKS; i++)
+	{
+		pauseTimer(&tank_array[i].timer1);
+		pauseTimer(&tank_array[i].timer2);
+	}	
+
+	//Pause the score label timers
+	for(int i = 0; i < MAX_SCORE_LABELS; i++)
+	{
+		pauseTimer(&scoreLabelArray[i].timer);
+	}
+
 	fsm.states[FSM_PAUSE_STATE].run = runPauseState;
 }
 

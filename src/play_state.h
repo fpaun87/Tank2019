@@ -10,7 +10,6 @@
 
 #define DEFAULT_TANK_SPEED 4u //pixels per update step
 #define DEFAULT_BULLET_SPEED 8u //pixels per update step
-#define DEFAULT_FIRE_HOLDOUT 500u //ms
 #define MAX_SCORE_LABELS 5
 #define SCORE_LABEL_INTERVAL_MSEC 2000
 
@@ -26,6 +25,7 @@ typedef struct Tank Tank;
 #define TANK_FSM_MAX_STATES 5
 typedef void (*TankFSMFuncPtr)(Tank* pTank);
 typedef struct TankState {
+    SDL_Texture *pTex;
 	TankFSMFuncPtr input;
 	TankFSMFuncPtr run;
 	TankFSMFuncPtr render;
@@ -38,11 +38,12 @@ typedef struct TankFSM {
 
 typedef struct Tank{
     SDL_Rect rect;
-    SDL_Texture *pTex;
+	SDL_Rect spawn_rect;
     float angle;
     uint32_t speed;
     bool canFire;
-    Timer timer; //this could be useful later
+    Timer timer1; 
+	Timer timer2;
     enum MoveEvent newMe;
     enum MoveEvent currMe;
     enum FireEvent fe;
@@ -54,7 +55,7 @@ typedef struct Tank{
 	TankFSM fsm;
 }Tank;
 
-enum TankFsmState {TANK_NORMAL_STATE, TANK_DEAD_STATE, TANK_EXPLODING_STATE, TANK_SPAWN_STATE};
+enum TankFsmState {TANK_NORMAL_STATE, TANK_DEAD_STATE, TANK_INVALID_STATE, TANK_SPAWN_STATE};
 
 typedef struct Bullet{
     SDL_Rect rect;
