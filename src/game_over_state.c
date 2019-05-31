@@ -36,16 +36,12 @@ void handleInputGameOverState(void)
             switch(event.key.keysym.sym)
             {
                 case SDLK_ESCAPE:
+				case SDLK_RETURN:
                     fsm.currentState = FSM_MENU_STATE;
+					fsm.states[FSM_GAMEOVER_STATE].run = pre_runGameOverState;
                     break;
 
-				case SDLK_RETURN:
-                    //fsm.currentState = FSM_SCORE_STATE;
-                    fsm.currentState = FSM_MENU_STATE; //for now
-					break;
-
             }
-			fsm.states[FSM_GAMEOVER_STATE].run = pre_runGameOverState;
         }
     }
 }

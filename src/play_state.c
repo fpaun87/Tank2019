@@ -23,7 +23,6 @@ void initScoreLabelArray(void);
 void initTankIconArray(void);
 void renderTankIconArray(void);
 void pre_runPlayState(void);
-void goToGameOverState(void);
 void drawForest(void);
 bool tankTerrainCollision(Tank* pTank, SDL_Rect *pRect);
 void tankReadAI(Tank *pTank);
@@ -34,10 +33,14 @@ void tankEmptyRun(Tank* pTank);
 void tankEmptyRender(Tank* pTank);
 void runTankSpawnState(Tank *pTank);
 void runCpuTankSpawnState(Tank *pTank);
-void playerTankRenderSpawnState(Tank* pTank);
-void cpuTankRenderSpawnState(Tank* pTank);
-void runTankDeadState(Tank *pTank);
+void renderPlayerTankSpawnState(Tank* pTank);
+void renderCpuTankSpawnState(Tank* pTank);
+void runCpuTankDeadState(Tank *pTank);
+void runPlayerTankDeadState(Tank *pTank);
 void renderTankDeadState(Tank* pTank);
+void resetTank(Tank *pTank, int level, float angle);
+void initTankArray(void);
+void resetTankArray(void);
 
 /* Terrain building functions */
 void buildTerrain1(void);
@@ -57,8 +60,6 @@ TerrainTile map[MAX_TERRAIN_TILES];
 ScoreLabel scoreLabelArray[MAX_SCORE_LABELS];
 BonusHandlerFuncPtr bonusHandlerArray[7];
 Bonus bonus; 
-Player p1 = {2,0};
-Player p2 = {2,0};
 SDL_Texture * normalTexTbl[3][5];
 SDL_Texture * deadTexTbl[5];
 
@@ -80,9 +81,8 @@ void renderBonus(void);
 void runTankNormalState(Tank *pTank)
 {
     static SDL_Rect* pNewPos;
-    bool outOfScene = false;
     bool hitsTank = false;
-    bool hitsTerrain = false;
+	bool hitsTerrain = false;
 
 
 	/*
@@ -138,7 +138,7 @@ void runTankNormalState(Tank *pTank)
 		if(pTank == &tank_array[j])
 			continue;
 
-		if(tank_array[j].fsm.currentState != TANK_NORMAL_STATE)
+		if(tank_array[j].fsm.currentState == TANK_INVALID_STATE)
 			continue;
 
 		if(SDL_HasIntersection(pNewPos, &tank_array[j].rect) == SDL_TRUE)
@@ -152,7 +152,7 @@ void runTankNormalState(Tank *pTank)
 	//Let's change this into a function
 	hitsTerrain = tankTerrainCollision(pTank, pNewPos);
 			
-	if(/*!outOfScene && */ !hitsTank && !hitsTerrain)
+	if(!hitsTank && !hitsTerrain)
 	{
 		pTank->rect.x = pNewPos->x;
 		pTank->rect.y = pNewPos->y;
@@ -191,6 +191,9 @@ bool initPlayState(void)
 	deadTexTbl[2] = rsmgrGetTexture(TEX_ID_TANKL2_XRAY);
 	deadTexTbl[3] = rsmgrGetTexture(TEX_ID_TANKL3_XRAY);
 	deadTexTbl[4] = rsmgrGetTexture(TEX_ID_TANKL4_XRAY);
+
+    //init the tank objects
+    initTankArray();
 
     //init the score label array
     initScoreLabelArray();
@@ -253,7 +256,30 @@ void runPlayState(void)
 {
 	Tank *pTank = NULL;
 
-	//Evaluate the victory conditions
+	/* YOU WON!! */
+	if((cfg.enemiesLeft  == 0 ) && 
+		((cfg.p1.lives > 0) || (cfg.p2.lives > 0)) &&
+		map[12 * 13 + 6].pTex == rsmgrGetTexture(TEX_ID_EAGLE))
+	{
+		static int delay = FPS * 6;
+		if(!delay--)
+		{
+			delay = FPS * 6;
+			Mix_HaltMusic();
+			fsm.states[FSM_PLAY_STATE].run = pre_runPlayState;
+			fsm.currentState = FSM_LEVEL_STATE;
+			return;
+		}
+	}
+	
+	/* YOU LOST */
+	if((map[12 * 13 + 6].pTex == rsmgrGetTexture(TEX_ID_DEAD_EAGLE)) ||
+		((cfg.p1.lives == 0) && (cfg.p2.lives == 0)))
+	{
+		Mix_HaltMusic();
+		fsm.states[FSM_PLAY_STATE].run = pre_runPlayState;
+		fsm.currentState = FSM_GAMEOVER_STATE;
+	}
 	
 	handleInputPlayState();
 
@@ -276,16 +302,18 @@ void renderPlayState(void)
 {
 	Tank *pTank = NULL;
 	static SDL_Rect icon = {1080,0,32,32};
+
     //First clear the renderer
     SDL_SetRenderDrawColor(cfg.pRen, 128,128,128,255);
     SDL_RenderClear(cfg.pRen);
+
     //Render the scene
     SDL_SetRenderDrawColor(cfg.pRen, 0,0,0,255);
     SDL_RenderFillRect(cfg.pRen, &scene);
+
     //Draw the terrain
     drawTerrain();
-    //Render all the enabled bullets
-    renderBullets();
+
     //Render the tanks in a state different than normal
 	for(int i = 0; i < MAX_TANKS; i++)
 	{
@@ -293,6 +321,10 @@ void renderPlayState(void)
 		if(pTank->fsm.currentState != TANK_NORMAL_STATE)
 			pTank->fsm.states[pTank->fsm.currentState].render(pTank);
 	}
+
+    //Render all the enabled bullets
+    renderBullets();
+
     //Render the tanks in normal state
 	for(int i = 0; i < MAX_TANKS; i++)
 	{
@@ -300,29 +332,34 @@ void renderPlayState(void)
 		if(pTank->fsm.currentState == TANK_NORMAL_STATE)
 			pTank->fsm.states[pTank->fsm.currentState].render(pTank);
 	}
+
 	//Render the forest
 	drawForest();
+
     //Render the bonus
     renderBonus();
+
     //Render the score labels
     renderScoreLabelArray();
+
 	//render the tank icons
 	renderTankIconArray();
+
     //Render the text
     printfg(TEX_ID_PLAY_FONT, 1080, 500, "P I\n");
 	icon.y = 530;	
 	SDL_RenderCopy(cfg.pRen, rsmgrGetTexture(TEX_ID_HEALTH), NULL, &icon); 
-    printfg(TEX_ID_PLAY_FONT, 1126, 530, "%02d", p1.lives);
+    printfg(TEX_ID_PLAY_FONT, 1126, 530, "%02d", cfg.p1.lives);
 	icon.y = 570;	
 	SDL_RenderCopy(cfg.pRen, rsmgrGetTexture(TEX_ID_COIN), NULL, &icon); 
-    printfg(TEX_ID_PLAY_FONT, 1126, 570, "%06d", p1.score);
+    printfg(TEX_ID_PLAY_FONT, 1126, 570, "%06d", cfg.p1.score);
 	printfg(TEX_ID_PLAY_FONT, 1080, 630, "P II");
 	icon.y = 660;	
 	SDL_RenderCopy(cfg.pRen, rsmgrGetTexture(TEX_ID_HEALTH), NULL, &icon); 
-	printfg(TEX_ID_PLAY_FONT, 1126, 660, "%02d", p2.lives);
+	printfg(TEX_ID_PLAY_FONT, 1126, 660, "%02d", cfg.p2.lives);
 	icon.y = 700;	
 	SDL_RenderCopy(cfg.pRen, rsmgrGetTexture(TEX_ID_COIN), NULL, &icon); 
-	printfg(TEX_ID_PLAY_FONT, 1126, 700, "%06d", p2.score);
+	printfg(TEX_ID_PLAY_FONT, 1126, 700, "%06d", cfg.p2.score);
 
 	icon.y = 780;	
 	SDL_RenderCopy(cfg.pRen, rsmgrGetTexture(TEX_ID_FLAG), NULL, &icon); 
@@ -483,15 +520,12 @@ void fireTank(Tank *pTank)
     Mix_PlayChannel(-1, rsmgrGetChunk(CHUNK_ID_FIRE), 0);
 }
 
-bool initTank(Tank *pTank, int level, int x, int y, float angle,
+void initTank(Tank *pTank, int level, int x, int y, float angle,
 			 enum DriverType driver, enum TankId id)
 {
     memset(pTank, 0, sizeof(Tank));
 
 	pTank->id = id;
-	pTank->level = level;
-    pTank->rect.x = x;
-    pTank->rect.y = y;
 	pTank->rect.w = 64;
 	pTank->rect.h = 64;
 	pTank->spawn_rect.x = x;
@@ -499,13 +533,8 @@ bool initTank(Tank *pTank, int level, int x, int y, float angle,
 	pTank->spawn_rect.w = 64;
 	pTank->spawn_rect.h = 64;
     pTank->speed = DEFAULT_TANK_SPEED; //pixels per frame
-    pTank->angle = angle;
-    pTank->newMe = ME_STOP;
-    pTank->currMe = ME_STOP;
-    pTank->fe = FE_NONE;
-	pTank->hp = level;
 	pTank->driver = driver;
-	pTank->canFire = true;
+	resetTank(pTank, level, angle);
 
 	/* Init the spawn state */
 	switch(driver)
@@ -518,19 +547,17 @@ bool initTank(Tank *pTank, int level, int x, int y, float angle,
 				pTank->fsm.states[TANK_SPAWN_STATE].input = tankReadGamepad;
 
 			pTank->fsm.states[TANK_SPAWN_STATE].run = runTankSpawnState;
-			pTank->fsm.states[TANK_SPAWN_STATE].render = playerTankRenderSpawnState;
+			pTank->fsm.states[TANK_SPAWN_STATE].render = renderPlayerTankSpawnState;
 			pTank->fsm.states[TANK_SPAWN_STATE].pTex = normalTexTbl[id][level];
 			break;
 
 		case CPU_DRIVER:
 			pTank->fsm.states[TANK_SPAWN_STATE].input = tankReadAI;
-			pTank->fsm.states[TANK_SPAWN_STATE].render = cpuTankRenderSpawnState;
+			pTank->fsm.states[TANK_SPAWN_STATE].render = renderCpuTankSpawnState;
 			pTank->fsm.states[TANK_SPAWN_STATE].pTex = rsmgrGetTexture(TEX_ID_ENEMY_TANK_SPAWN);
 			pTank->fsm.states[TANK_SPAWN_STATE].run = runCpuTankSpawnState;
 			break;
 	}
-
-	setTimer(&pTank->timer1, 4000);
 
 	/* Init the normal state */
 	switch(id)
@@ -553,7 +580,11 @@ bool initTank(Tank *pTank, int level, int x, int y, float angle,
 
 	/* Init the dead state */
 	pTank->fsm.states[TANK_DEAD_STATE].input = tankEmptyInput;
-	pTank->fsm.states[TANK_DEAD_STATE].run = runTankDeadState;
+	if(driver == HUMAN_DRIVER)
+		pTank->fsm.states[TANK_DEAD_STATE].run = runPlayerTankDeadState;
+	else
+		pTank->fsm.states[TANK_DEAD_STATE].run = runCpuTankDeadState;
+
 	pTank->fsm.states[TANK_DEAD_STATE].render = renderTankDeadState;
 	pTank->fsm.states[TANK_DEAD_STATE].pTex = deadTexTbl[pTank->level];
 
@@ -561,12 +592,9 @@ bool initTank(Tank *pTank, int level, int x, int y, float angle,
 	pTank->fsm.states[TANK_INVALID_STATE].input = tankEmptyInput;
 	pTank->fsm.states[TANK_INVALID_STATE].run = tankEmptyRun;
 	pTank->fsm.states[TANK_INVALID_STATE].render = tankEmptyRender;
-
-	pTank->fsm.currentState = TANK_SPAWN_STATE;
-    return true;
 }
 
-bool initBullets(void)
+void initBullets(void)
 {
     //The bullet texture's width and height
     int w=0, h=0;
@@ -584,7 +612,6 @@ bool initBullets(void)
         bullet_array[i].speed = DEFAULT_BULLET_SPEED; //in pixels per update time
         bullet_array[i].enabled = false;
     }
-    return true;
 }
 
 void updateBullets()
@@ -692,18 +719,20 @@ bool isInScene(SDL_Rect* pRect)
 
 }
 
-bool initTankArray(void)
+void initTankArray(void)
 {
 	int level = 0;
     memset(tank_array, 0, sizeof(tank_array));
 
-    if(!initTank(&tank_array[0], 1, SCENE_TOP_LEFT_X + 4*64, SCENE_HEIGHT-64, 0.0f,
-		HUMAN_DRIVER, TANKID_PLAYER1))
-        return false;
+	/* If both players have scores == 0 set their levels to 1 */
+	if(!cfg.p1.score && !cfg.p2.score)
+		level = 1;
 
-	if(!initTank(&tank_array[1], 1, SCENE_TOP_LEFT_X + 8*64, SCENE_HEIGHT-64, 0.0f,
-		HUMAN_DRIVER, TANKID_PLAYER2))
-		return false;
+    initTank(&tank_array[0], level, SCENE_TOP_LEFT_X + 4*64, SCENE_HEIGHT-64, 0.0f,
+		HUMAN_DRIVER, TANKID_PLAYER1);
+
+	initTank(&tank_array[1], level, SCENE_TOP_LEFT_X + 8*64, SCENE_HEIGHT-64, 0.0f,
+		HUMAN_DRIVER, TANKID_PLAYER2);
 
     if(cfg.players == 1)
 		tank_array[1].fsm.currentState = TANK_INVALID_STATE;
@@ -725,7 +754,6 @@ bool initTankArray(void)
     initTank(&tank_array[5], level, SCENE_TOP_LEFT_X + 6*64, SCENE_TOP_LEFT_Y + 2*64, 180.0f,
 				CPU_DRIVER, TANKID_ENEMY);
 
-    return true;
 }
 
 void buildTerrain1(void)
@@ -1662,10 +1690,10 @@ void playerTankHitByEnemyBullet(Tank *pTank)
     //this should be moved to a function that checks for the
 	// victory conditions
 	if(pTank->id == TANKID_PLAYER1)
-		p1.lives --;
+		cfg.p1.lives --;
 
 	if(pTank->id == TANKID_PLAYER2)
-		p2.lives --;
+		cfg.p2.lives --;
 
 }
 
@@ -1679,13 +1707,12 @@ void enemyTankHitByPlayerBullet(Tank *pAttacker, Tank *pVictim)
         return;
 
     pVictim->fsm.currentState = TANK_DEAD_STATE;
-    cfg.enemiesLeft--;
 
     if(pAttacker->id == TANKID_PLAYER1)
-        p1.score += pVictim->level * 100;
+        cfg.p1.score += pVictim->level * 100;
 
     if(pAttacker->id == TANKID_PLAYER2)
-        p2.score += pVictim->level * 100;
+        cfg.p2.score += pVictim->level * 100;
 
 	setTimer(&pVictim->timer1, 1000);
 }
@@ -1698,10 +1725,8 @@ bool activateScoreLabel(Tank *pTank)
     //find a score label that is not yet activated
     for(i = 0; i < MAX_SCORE_LABELS; i++)
     {
-        if(!isTimerUp(&scoreLabelArray[i].timer))
-            continue;
-
-        break;
+        if(!scoreLabelArray[i].active)
+			break;
     }
 
     if(i == MAX_SCORE_LABELS)
@@ -1713,6 +1738,7 @@ bool activateScoreLabel(Tank *pTank)
     //initialize the label found
     scoreLabelArray[i].rect.x = pTank->rect.x;
     scoreLabelArray[i].rect.y = pTank->rect.y;
+    scoreLabelArray[i].active = true;
 
     switch(pTank->level)
     {
@@ -1745,10 +1771,18 @@ void renderScoreLabelArray(void)
 {
     for(int i = 0; i < MAX_SCORE_LABELS; i++)
     {
-        if(isTimerUp(&scoreLabelArray[i].timer))
-            continue;
+		/* If label is not active, continue */
+		if( !scoreLabelArray[i].active ) continue;
 
-        SDL_RenderCopy(cfg.pRen, scoreLabelArray[i].pTex, NULL, &scoreLabelArray[i].rect);
+		/* If active and not yet expired, render it */
+        if( !isTimerUp(&scoreLabelArray[i].timer) )
+		{
+			SDL_RenderCopy(cfg.pRen, scoreLabelArray[i].pTex, NULL, &scoreLabelArray[i].rect);
+			continue;
+		}
+
+		/* Else, make the label inactive */
+		scoreLabelArray[i].active = false;
     }
 }
 
@@ -1757,6 +1791,7 @@ void initScoreLabelArray(void)
     memset(scoreLabelArray, 0, sizeof(scoreLabelArray));
     for(int i = 0; i < MAX_SCORE_LABELS; i++)
     {
+		scoreLabelArray[i].active = false;
         SDL_QueryTexture(rsmgrGetTexture(TEX_ID_SCORE_100), NULL, NULL, &scoreLabelArray[i].rect.w, &scoreLabelArray[i].rect.h);
     }
 }
@@ -1796,11 +1831,11 @@ void handleBonusTank(Tank *pTank)
     switch(pTank->tankId)
     {
         case TANKID_PLAYER1:
-            p1.lives++;
+            cfg.p1.lives++;
             break;
 
         case TANKID_PLAYER2:
-            p2.lives++;
+            cfg.p2.lives++;
             break;
 
         default:
@@ -1861,8 +1896,7 @@ void pre_runPlayState(void)
     //build the terrain
     terrainBuilders[cfg.Level - 1]();
 
-    //init the tank objects
-    initTankArray();
+	resetTankArray();	
  
     initBullets();
 
@@ -1877,12 +1911,6 @@ void pre_runPlayState(void)
 	fsm.states[FSM_PLAY_STATE].run = runPlayState;
 }
 
-void goToGameOverState(void)
-{
-	Mix_HaltMusic();
-	fsm.states[FSM_PLAY_STATE].run = pre_runPlayState;
-	fsm.currentState = FSM_GAMEOVER_STATE;
-}
 
 /* This determines if the tank hits the terrain */
 bool tankTerrainCollision(Tank* pTank, SDL_Rect* pRect)
@@ -1998,7 +2026,6 @@ int handleBulletTerrainCollision(Bullet *pBullet)
 	{
 		map[162].pTex = rsmgrGetTexture(TEX_ID_DEAD_EAGLE);
 		pBullet->enabled = false;
-		goToGameOverState();
 		return true;
 	}
 
@@ -2075,24 +2102,32 @@ void runTankSpawnState(Tank *pTank)
 	pTank->fsm.currentState = TANK_NORMAL_STATE;
 }
 
-void playerTankRenderSpawnState(Tank* pTank)
+void renderPlayerTankSpawnState(Tank* pTank)
 {
 	static int blinkIntervalMS = 50;
-	static bool draw = true;
+	static bool visibleFlags[2] = {true, true};
+	bool *pFlag = NULL;
+	
+	if(pTank->id == TANKID_PLAYER1)
+		pFlag  = &visibleFlags[0];
+
+	if(pTank->id == TANKID_PLAYER2)
+		pFlag  = &visibleFlags[1];
+
 	if(isTimerUp(&pTank->timer2))
 	{
-		draw = !draw;
+		*pFlag = !*pFlag;
 		setTimer(&pTank->timer2, blinkIntervalMS);
 	}
 		
-	if(draw)
+	if(*pFlag)
 	{
 		SDL_RenderCopyEx(cfg.pRen, TANK_TEX(pTank), NULL, &pTank->rect,
 					pTank->angle, NULL, SDL_FLIP_NONE);
 	}
 }
 
-void cpuTankRenderSpawnState(Tank* pTank)
+void renderCpuTankSpawnState(Tank* pTank)
 {
 	static SDL_Rect rect = {0, 0, 64, 64};
 
@@ -2136,10 +2171,12 @@ void renderTankDeadState(Tank* pTank)
 	}
 }
 
-void runTankDeadState(Tank *pTank)
+void runCpuTankDeadState(Tank *pTank)
 {
 	if(!isTimerUp(&pTank->timer1))
 		return;
+
+    cfg.enemiesLeft--;
 
     //Activate a score label
     activateScoreLabel(pTank);
@@ -2150,13 +2187,54 @@ void runTankDeadState(Tank *pTank)
 	}
 	else
 	{
-		pTank->rect.x = pTank->spawn_rect.x;
-		pTank->rect.y = pTank->spawn_rect.y;
+		
 		pTank->level = (rand() % 4) + 1;
-		pTank->hp = pTank->level;
-		pTank->fsm.states[TANK_NORMAL_STATE].pTex = normalTexTbl[pTank->id][pTank->level];
-		pTank->fsm.states[TANK_DEAD_STATE].pTex = deadTexTbl[pTank->level];
-		setTimer(&pTank->timer1, 4000);
-		pTank->fsm.currentState = TANK_SPAWN_STATE;
+		resetTank(pTank, pTank->level, 180.0);
 	}
 }
+
+void resetTank(Tank *pTank, int level, float angle)
+{
+    pTank->level = level;
+    pTank->rect.x = pTank->spawn_rect.x;
+    pTank->rect.y = pTank->spawn_rect.y;
+    pTank->angle = angle;
+    pTank->newMe = ME_STOP;
+    pTank->currMe = ME_STOP; 
+    pTank->fe = FE_NONE;
+    pTank->hp = level; 
+    pTank->canFire = true;
+	pTank->fsm.states[TANK_NORMAL_STATE].pTex = normalTexTbl[pTank->id][pTank->level];
+	pTank->fsm.states[TANK_DEAD_STATE].pTex = deadTexTbl[pTank->level];
+
+    setTimer(&pTank->timer1, 4000);
+    pTank->fsm.currentState = TANK_SPAWN_STATE;
+}
+
+void resetTankArray(void)
+{
+	int level1 = tank_array[0].level;
+	int level2 = tank_array[1].level;
+
+	/* If both players have scores == 0 set their levels to 1 */
+	if(!cfg.p1.score && !cfg.p2.score)
+		level1 = level2 = 1;
+
+    resetTank(&tank_array[0], level1,  0.0f);
+
+	resetTank(&tank_array[1], level2, 0.0f);
+
+    if(cfg.players == 1)
+		tank_array[1].fsm.currentState = TANK_INVALID_STATE;
+    
+    //Init the enemy tanks
+	for(int i = 2; i < 6; i++)
+	{
+		level1 = (rand() % 4) + 1;
+		resetTank(&tank_array[i], level1, 180.0f);
+	}
+}
+
+/* TODO: IMPLEMENT THIS */
+void runPlayerTankDeadState(Tank *pTank) {}
+

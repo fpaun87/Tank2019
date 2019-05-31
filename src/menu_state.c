@@ -42,28 +42,36 @@ void handleInputMenuState(void)
             switch(event.key.keysym.sym)
             {
                 case SDLK_RETURN:
-			/* Let's see what the user has chosen */
-			switch(dstRect.y)
-			{
-				/* 1 player */
-				case MARKER_START_Y:
-					cfg.players = 1;
-					break;
+				/* Let's see what the user has chosen */
+				switch(dstRect.y)
+				{
+					/* 1 player */
+					case MARKER_START_Y:
+						cfg.players = 1;
+						cfg.p1.lives = 2;
+						cfg.p1.score = 0;
+						cfg.p2.lives = 0;
+						cfg.p2.score = 0;
+						break;
 
-				/* 2 players */
-				case (64 + SPACE):
-					cfg.players = 2;
-					break;
+					/* 2 players */
+					case (MARKER_START_Y + 64 + SPACE):
+						cfg.players = 2;
+						cfg.p1.lives = 2;
+						cfg.p1.score = 0;
+						cfg.p2.lives = 2;
+						cfg.p2.score = 0;
+						break;
 
-				/* exit */
-				case MARKER_STOP_Y:
-					quit = true;
-					return ;
+					/* exit */
+					case MARKER_STOP_Y:
+						quit = true;
+						return ;
 
-				default:
-					break;
-			}
-			fsm.currentState = FSM_LEVEL_STATE;
+					default:
+						break;
+				}
+				fsm.currentState = FSM_LEVEL_STATE;
                     break;
 
                 case SDLK_DOWN:

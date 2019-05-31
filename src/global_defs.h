@@ -25,6 +25,11 @@ enum FSMStateId {
     FSM_GAMEOVER_STATE
 };
 
+typedef struct Player {
+    int lives;
+    int score;
+}Player;
+
 typedef struct Config {
     SDL_Window *pWin;
     SDL_Renderer *pRen;
@@ -32,6 +37,8 @@ typedef struct Config {
     int players;
     int enemiesLeft;
     int Level;
+	Player p1;
+	Player p2;
 } Config;
 
 

@@ -72,12 +72,8 @@ typedef struct TerrainTile{
     enum TerrainType type;
 }TerrainTile;
 
-typedef struct Player {
-	int lives;
-	int score;
-}Player;
-
 typedef struct ScoreLabel{
+	bool active;
     Timer timer;
     SDL_Rect rect;
     SDL_Texture *pTex;
@@ -100,10 +96,10 @@ typedef struct Bonus{
 void updateTanks(void);
 SDL_Rect* moveTank(Tank *pTank);
 void fireTank(Tank *pTank);
-bool initTank(Tank *pTank, int level, int x, int y, float angle,
+void initTank(Tank *pTank, int level, int x, int y, float angle,
 			 enum DriverType type, enum TankId id);
-bool initTankArray(void);
-bool initBullets(void);
+void initTankArray(void);
+void initBullets(void);
 void updateBullets(void);
 void renderTanks(void);
 void renderBullets(void);
