@@ -9,8 +9,9 @@
 #define MAX_TERRAIN_TILES 169
 
 #define DEFAULT_TANK_SPEED 4u //pixels per update step
-#define DEFAULT_BULLET_SPEED 8u //pixels per update step
-#define MAX_SCORE_LABELS 5
+#define DEFAULT_FIRE_INTERVAL 500 //MS
+#define DEFAULT_BULLET_SPEED 4u //pixels per update step
+#define MAX_SCORE_LABELS 10
 #define SCORE_LABEL_INTERVAL_MSEC 2000
 
 
@@ -44,6 +45,7 @@ typedef struct Tank{
     bool canFire;
     Timer timer1; 
 	Timer timer2;
+	Timer holdTimer;
     enum MoveEvent newMe;
     enum MoveEvent currMe;
     enum FireEvent fe;
@@ -70,6 +72,7 @@ typedef struct TerrainTile{
     SDL_Rect rect;
     SDL_Texture *pTex;
     enum TerrainType type;
+	int breakFactor;
 }TerrainTile;
 
 typedef struct ScoreLabel{

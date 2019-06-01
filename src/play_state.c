@@ -480,13 +480,14 @@ void fireTank(Tank *pTank)
     int i = 0;
 
     //Only for convenience
+	Bullet *pBullet = NULL;
     int bw = bullet_array[0].rect.w;
     int tw = pTank->rect.w;
 
     if(pTank->fe == FE_NONE)
         return;
 
-    if(!pTank->canFire)
+    if(!isTimerUp(&pTank->holdTimer))
     {
         pTank->fe = FE_NONE;
         return;
@@ -512,9 +513,46 @@ void fireTank(Tank *pTank)
 	bullet_array[i].rect.y = pTank->rect.y + (tw - bw)/2;
     bullet_array[i].enabled = true;
     bullet_array[i].pOwner = pTank;
+	if((pTank->level == 2) || (pTank->level == 4))	
+		bullet_array[i].speed = DEFAULT_BULLET_SPEED + 4;
+	else
+		bullet_array[i].speed = DEFAULT_BULLET_SPEED;
+
+	if((pTank->level == 3) || (pTank->level == 4))	
+	{
+		
+		//Find a bullet that is not enabled
+		for(i = 0; i < MAX_BULLETS; i++)
+		{
+			if(!bullet_array[i].enabled)
+				break;
+		}
+
+		//No free bullet found? That's so sad! :(
+		if(i == MAX_BULLETS)
+		{
+			printf("FATAL ERROR: NO MORE BULLETS AVAILABLE! FIX YOUR LOGIC!\n");
+			pTank->fe = FE_NONE;
+			return;
+		}
+		bullet_array[i].angle = pTank->angle;
+		bullet_array[i].rect.x = pTank->rect.x + (tw - bw)/2;
+		bullet_array[i].rect.y = pTank->rect.y + (tw - bw)/2;
+		if(bullet_array[i].angle == (int)0) bullet_array[i].rect.y -= 3*bw;
+		if(bullet_array[i].angle == (int)180) bullet_array[i].rect.y += 3*bw;
+		if(bullet_array[i].angle == (int)90) bullet_array[i].rect.x += 3*bw;
+		if(bullet_array[i].angle == (int)270) bullet_array[i].rect.x -= 3*bw;
+		if(pTank->level == 4)
+			bullet_array[i].speed = DEFAULT_BULLET_SPEED + 4;
+		else
+			bullet_array[i].speed = DEFAULT_BULLET_SPEED;
+
+		bullet_array[i].enabled = true;
+		bullet_array[i].pOwner = pTank;
+	}
     pTank->fe = FE_NONE;
 
-    pTank->canFire = false;
+    setTimer(&pTank->holdTimer, DEFAULT_FIRE_INTERVAL);
 
     //Play the fire sound
     Mix_PlayChannel(-1, rsmgrGetChunk(CHUNK_ID_FIRE), 0);
@@ -650,8 +688,7 @@ void updateBullets()
         if(!isInScene(&bullet_array[i].rect))
         {
             bullet_array[i].enabled = false;
-			bullet_array[i].pOwner->canFire = true;
-            break;
+			continue;
         }
 
         //Check collisions with tanks
@@ -666,10 +703,13 @@ void updateBullets()
             if(!bullet_array[j].enabled)
                 continue;
 
+			/* If bullets have the same owner nothin happens */
+			if(bullet_array[i].pOwner == bullet_array[j].pOwner)
+				continue;
+
             if(SDL_HasIntersection(&bullet_array[i].rect, &bullet_array[j].rect) == SDL_TRUE)
             {
                 bullet_array[j].enabled = false;
-				bullet_array[j].pOwner->canFire = true;
                 hits++;
             }
         }
@@ -1665,7 +1705,6 @@ int handleBulletTankCollision(Bullet *pBullet)
 		if(pBullet->pOwner->driver == pTank->driver)
 		{
 			hits++;
-			pBullet->pOwner->canFire = true;
 			continue;
 		}
 
@@ -1700,7 +1739,6 @@ void playerTankHitByEnemyBullet(Tank *pTank)
 void enemyTankHitByPlayerBullet(Tank *pAttacker, Tank *pVictim)
 {
     pVictim->hp--;
-	pAttacker->canFire = true;
 
     //If the victim is till alive
     if(pVictim->hp)
@@ -2037,7 +2075,6 @@ int handleBulletTerrainCollision(Bullet *pBullet)
 			map[line1 * 13 + col1].pTex = NULL;
 			map[line1 * 13 + col1].type = TERRAIN_NONE;
 			hit = true;
-			pBullet->pOwner->canFire = true;
 		}
     }
 
@@ -2048,7 +2085,6 @@ int handleBulletTerrainCollision(Bullet *pBullet)
 		{
 			map[line2 * 13 + col2].pTex = NULL;
 			map[line2 * 13 + col2].type = TERRAIN_NONE;
-			pBullet->pOwner->canFire = true;
 			hit = true;
 		}
 	}
@@ -2203,7 +2239,6 @@ void resetTank(Tank *pTank, int level, float angle)
     pTank->currMe = ME_STOP; 
     pTank->fe = FE_NONE;
     pTank->hp = level; 
-    pTank->canFire = true;
 	pTank->fsm.states[TANK_NORMAL_STATE].pTex = normalTexTbl[pTank->id][pTank->level];
 	pTank->fsm.states[TANK_DEAD_STATE].pTex = deadTexTbl[pTank->level];
 
@@ -2218,7 +2253,7 @@ void resetTankArray(void)
 
 	/* If both players have scores == 0 set their levels to 1 */
 	if(!cfg.p1.score && !cfg.p2.score)
-		level1 = level2 = 1;
+		level1 = level2 = 4;
 
     resetTank(&tank_array[0], level1,  0.0f);
 
