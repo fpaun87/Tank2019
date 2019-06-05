@@ -10,7 +10,7 @@
 
 #define DEFAULT_TANK_SPEED 4u //pixels per update step
 #define DEFAULT_FIRE_INTERVAL 500 //MS
-#define DEFAULT_BULLET_SPEED 4u //pixels per update step
+#define DEFAULT_BULLET_SPEED 6u //pixels per update step
 #define MAX_SCORE_LABELS 10
 #define SCORE_LABEL_INTERVAL_MSEC 2000
 
@@ -72,7 +72,6 @@ typedef struct TerrainTile{
     SDL_Rect rect;
     SDL_Texture *pTex;
     enum TerrainType type;
-	int breakFactor;
 }TerrainTile;
 
 typedef struct ScoreLabel{

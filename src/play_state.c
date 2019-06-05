@@ -41,6 +41,7 @@ void renderTankDeadState(Tank* pTank);
 void resetTank(Tank *pTank, int level, float angle);
 void initTankArray(void);
 void resetTankArray(void);
+void breakTerrain(int angle, int line, int col);
 
 /* Terrain building functions */
 void buildTerrain1(void);
@@ -89,7 +90,7 @@ void runTankNormalState(Tank *pTank)
 	 * Only read your new move event if your (x,y) is a 
 	 * multiple of 16. This is for easy tank maneuvering
 	 */
-	if(!(pTank->rect.x % 16) && !(pTank->rect.y % 16))
+	//if(!(pTank->rect.x % 16) && !(pTank->rect.y % 16))
 		pTank->currMe = pTank->newMe;
 
 
@@ -129,7 +130,10 @@ void runTankNormalState(Tank *pTank)
 
 	//don't go out of bounds
 	if(!isInScene(pNewPos))
+	{
+		pTank->currMe = ME_STOP;
 		return;
+	}
 
 	//check collision with the other tanks
 	for(int j = 0; j < MAX_TANKS; j++)
@@ -156,6 +160,10 @@ void runTankNormalState(Tank *pTank)
 	{
 		pTank->rect.x = pNewPos->x;
 		pTank->rect.y = pNewPos->y;
+	}
+	else
+	{
+		pTank->currMe = ME_STOP;
 	}
 
 	fireTank(pTank);
@@ -2072,8 +2080,11 @@ int handleBulletTerrainCollision(Bullet *pBullet)
     {
 		if(SDL_HasIntersection(&pBullet->rect, &map[line1 * 13 + col1].rect) == SDL_TRUE)
 		{
+			/*
 			map[line1 * 13 + col1].pTex = NULL;
 			map[line1 * 13 + col1].type = TERRAIN_NONE;
+			*/
+			breakTerrain((int)pBullet->angle, line1, col1);
 			hit = true;
 		}
     }
@@ -2083,13 +2094,56 @@ int handleBulletTerrainCollision(Bullet *pBullet)
 	{
 		if(SDL_HasIntersection(&pBullet->rect, &map[line2 * 13 + col2].rect) == SDL_TRUE)
 		{
+			/*
 			map[line2 * 13 + col2].pTex = NULL;
 			map[line2 * 13 + col2].type = TERRAIN_NONE;
+			*/
+			breakTerrain((int)pBullet->angle, line2, col2);
 			hit = true;
 		}
 	}
 
 	return hit;
+}
+
+void breakTerrain(int angle, int line, int col)
+{
+	int breakFactor = 16;
+	int index = line * 13 + col;
+
+	if(map[index].type == TERRAIN_SHIELD)
+		breakFactor = 32;
+
+	switch(angle)
+	{
+		/* Bullet comes from below */
+		case 0:
+			map[index].rect.h -= breakFactor;
+			break;
+
+		/* Bullet comes from left */
+		case 90:
+			map[index].rect.x += breakFactor;
+			map[index].rect.w -= breakFactor;
+			break;
+
+		/* Bullet comes from above */
+		case 180:
+			map[index].rect.y += breakFactor;
+			map[index].rect.h -= breakFactor;
+			break;
+
+		/* Bullet comes from right */
+		case 270:
+			map[index].rect.w -= breakFactor;
+			break;
+	}
+
+	if((map[index].rect.w <= 0) || (map[index].rect.h <= 0))
+	{
+		map[index].pTex = NULL;
+		map[index].type = TERRAIN_NONE;
+	}
 }
 
 void initTankIconArray(void)
@@ -2121,7 +2175,11 @@ void renderTankIconArray(void)
  * This is the function through which the enemy tanks get their position 
  * TODO: IMPLEMENT THIS
  */
-void tankReadAI(Tank *pTank) {}
+void tankReadAI(Tank *pTank)
+{
+	if((pTank->currMe == ME_STOP))
+		pTank->newMe =  (rand() % 5);
+}
 
 void tankEmptyInput(Tank* pTank) {}
 void tankEmptyRun(Tank* pTank) {}
@@ -2253,7 +2311,7 @@ void resetTankArray(void)
 
 	/* If both players have scores == 0 set their levels to 1 */
 	if(!cfg.p1.score && !cfg.p2.score)
-		level1 = level2 = 4;
+		level1 = level2 = 1;
 
     resetTank(&tank_array[0], level1,  0.0f);
 
