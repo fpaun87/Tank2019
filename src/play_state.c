@@ -31,7 +31,7 @@ void renderTankNormalState(Tank *pTank);
 void tankEmptyInput(Tank* pTank);
 void tankEmptyRun(Tank* pTank);
 void tankEmptyRender(Tank* pTank);
-void runTankSpawnState(Tank *pTank);
+void runPlayerTankSpawnState(Tank *pTank);
 void runCpuTankSpawnState(Tank *pTank);
 void renderPlayerTankSpawnState(Tank* pTank);
 void renderCpuTankSpawnState(Tank* pTank);
@@ -42,6 +42,7 @@ void resetTank(Tank *pTank, int level, float angle);
 void initTankArray(void);
 void resetTankArray(void);
 void breakTerrain(int angle, int line, int col);
+void runTankPrespawnState(Tank *pTank);
 
 /* Terrain building functions */
 void buildTerrain1(void);
@@ -85,14 +86,7 @@ void runTankNormalState(Tank *pTank)
     bool hitsTank = false;
 	bool hitsTerrain = false;
 
-
-	/*
-	 * Only read your new move event if your (x,y) is a 
-	 * multiple of 16. This is for easy tank maneuvering
-	 */
-	//if(!(pTank->rect.x % 16) && !(pTank->rect.y % 16))
-		pTank->currMe = pTank->newMe;
-
+	pTank->currMe = pTank->newMe;
 
 	if(pTank->currMe == ME_STOP)
 	{
@@ -143,6 +137,9 @@ void runTankNormalState(Tank *pTank)
 			continue;
 
 		if(tank_array[j].fsm.currentState == TANK_INVALID_STATE)
+			continue;
+
+		if(tank_array[j].fsm.currentState == TANK_PRE_SPAWN_STATE)
 			continue;
 
 		if(SDL_HasIntersection(pNewPos, &tank_array[j].rect) == SDL_TRUE)
@@ -407,7 +404,7 @@ void tankReadKeyboard(Tank *pTank)
     }
 
     //When none of the movement keys are pressed, stop the tank
-    pTank->newMe = ME_STOP;
+	pTank->newMe = ME_STOP;
 }
 
 void tankReadGamepad(Tank* pTank)
@@ -582,6 +579,11 @@ void initTank(Tank *pTank, int level, int x, int y, float angle,
 	pTank->driver = driver;
 	resetTank(pTank, level, angle);
 
+	/* Init the pre-spawn state */
+	pTank->fsm.states[TANK_PRE_SPAWN_STATE].input = tankEmptyInput;
+	pTank->fsm.states[TANK_PRE_SPAWN_STATE].run = runTankPrespawnState;
+	pTank->fsm.states[TANK_PRE_SPAWN_STATE].render = tankEmptyRender;
+
 	/* Init the spawn state */
 	switch(driver)
 	{
@@ -592,16 +594,16 @@ void initTank(Tank *pTank, int level, int x, int y, float angle,
 			if(id == TANKID_PLAYER2)
 				pTank->fsm.states[TANK_SPAWN_STATE].input = tankReadGamepad;
 
-			pTank->fsm.states[TANK_SPAWN_STATE].run = runTankSpawnState;
+			pTank->fsm.states[TANK_SPAWN_STATE].run = runPlayerTankSpawnState;
 			pTank->fsm.states[TANK_SPAWN_STATE].render = renderPlayerTankSpawnState;
 			pTank->fsm.states[TANK_SPAWN_STATE].pTex = normalTexTbl[id][level];
 			break;
 
 		case CPU_DRIVER:
+			pTank->fsm.states[TANK_SPAWN_STATE].run = runCpuTankSpawnState;
 			pTank->fsm.states[TANK_SPAWN_STATE].input = tankReadAI;
 			pTank->fsm.states[TANK_SPAWN_STATE].render = renderCpuTankSpawnState;
 			pTank->fsm.states[TANK_SPAWN_STATE].pTex = rsmgrGetTexture(TEX_ID_ENEMY_TANK_SPAWN);
-			pTank->fsm.states[TANK_SPAWN_STATE].run = runCpuTankSpawnState;
 			break;
 	}
 
@@ -2173,7 +2175,6 @@ void renderTankIconArray(void)
 
 /*
  * This is the function through which the enemy tanks get their position 
- * TODO: IMPLEMENT THIS
  */
 void tankReadAI(Tank *pTank)
 {
@@ -2185,13 +2186,48 @@ void tankEmptyInput(Tank* pTank) {}
 void tankEmptyRun(Tank* pTank) {}
 void tankEmptyRender(Tank* pTank) {}
 
-void runTankSpawnState(Tank *pTank)
+void runTankPrespawnState(Tank *pTank)
 {
+	/*
+	 * Delay displaying and running the play state
+	 * if another tank sits on your spawn location
+	 */
+	for(int j = 0; j < MAX_TANKS; j++)
+	{
+		/* Don't collide with yourself */
+		if(pTank == &tank_array[j])
+			continue;
+
+		if(tank_array[j].fsm.currentState == TANK_INVALID_STATE)
+			continue;
+
+		if(SDL_HasIntersection(&pTank->spawn_rect, &tank_array[j].rect) == SDL_TRUE)
+			return;
+	}
+
+	/* If no collision, run the spawn state */
+	setTimer(&pTank->timer1, DEFAULT_SPAWN_STATE_DURATION);
+	pTank->fsm.currentState = TANK_SPAWN_STATE;
+	
+}
+
+void runPlayerTankSpawnState(Tank *pTank)
+{
+		
 	if(!isTimerUp(&pTank->timer1))
 	{
 		runTankNormalState(pTank);
 		return;
 	}
+
+	pTank->fsm.currentState = TANK_NORMAL_STATE;
+}
+
+void runCpuTankSpawnState(Tank *pTank)
+{
+		
+	if(!isTimerUp(&pTank->timer1))
+		return;
 
 	pTank->fsm.currentState = TANK_NORMAL_STATE;
 }
@@ -2233,14 +2269,6 @@ void renderCpuTankSpawnState(Tank* pTank)
 
 	if(rect.x >= 64*30) 
 		rect.x = 0;
-}
-
-void runCpuTankSpawnState(Tank *pTank)
-{
-	if(!isTimerUp(&pTank->timer1))
-		return;
-
-	pTank->fsm.currentState = TANK_NORMAL_STATE;
 }
 
 void renderTankDeadState(Tank* pTank)
@@ -2300,8 +2328,7 @@ void resetTank(Tank *pTank, int level, float angle)
 	pTank->fsm.states[TANK_NORMAL_STATE].pTex = normalTexTbl[pTank->id][pTank->level];
 	pTank->fsm.states[TANK_DEAD_STATE].pTex = deadTexTbl[pTank->level];
 
-    setTimer(&pTank->timer1, 4000);
-    pTank->fsm.currentState = TANK_SPAWN_STATE;
+    pTank->fsm.currentState = TANK_PRE_SPAWN_STATE;
 }
 
 void resetTankArray(void)
