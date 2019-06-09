@@ -9,7 +9,7 @@
 #define MAX_TERRAIN_TILES 169
 
 #define DEFAULT_TANK_SPEED 4u //pixels per update step
-#define DEFAULT_FIRE_INTERVAL 800 //MS
+#define DEFAULT_FIRE_INTERVAL 500 //MS
 #define DEFAULT_SPAWN_STATE_DURATION 4000 //MS
 #define DEFAULT_BULLET_SPEED 6u //pixels per update step
 #define MAX_SCORE_LABELS 10

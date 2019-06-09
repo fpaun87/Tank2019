@@ -41,8 +41,9 @@ void renderTankDeadState(Tank* pTank);
 void resetTank(Tank *pTank, int level, float angle);
 void initTankArray(void);
 void resetTankArray(void);
-void breakTerrain(int angle, int line, int col);
+void breakTerrain(int angle, int line, int col, int level);
 void runTankPrespawnState(Tank *pTank);
+void pre_runTankDeadState(Tank *pTank);
 
 /* Terrain building functions */
 void buildTerrain1(void);
@@ -560,7 +561,7 @@ void fireTank(Tank *pTank)
     setTimer(&pTank->holdTimer, DEFAULT_FIRE_INTERVAL);
 
     //Play the fire sound
-    Mix_PlayChannel(-1, rsmgrGetChunk(CHUNK_ID_FIRE), 0);
+    //Mix_PlayChannel(-1, rsmgrGetChunk(CHUNK_ID_FIRE), 0);
 }
 
 void initTank(Tank *pTank, int level, int x, int y, float angle,
@@ -628,11 +629,8 @@ void initTank(Tank *pTank, int level, int x, int y, float angle,
 
 	/* Init the dead state */
 	pTank->fsm.states[TANK_DEAD_STATE].input = tankEmptyInput;
-	if(driver == HUMAN_DRIVER)
-		pTank->fsm.states[TANK_DEAD_STATE].run = runPlayerTankDeadState;
-	else
-		pTank->fsm.states[TANK_DEAD_STATE].run = runCpuTankDeadState;
 
+	pTank->fsm.states[TANK_DEAD_STATE].run = pre_runTankDeadState;
 	pTank->fsm.states[TANK_DEAD_STATE].render = renderTankDeadState;
 	pTank->fsm.states[TANK_DEAD_STATE].pTex = deadTexTbl[pTank->level];
 
@@ -1724,25 +1722,20 @@ int handleBulletTankCollision(Bullet *pBullet)
 
 }
 
-/* TODO: THIS REQUIRES SERIOUS WORK */
-void playerTankHitByEnemyBullet(Tank *pTank)
+void playerTankHitByEnemyBullet(Tank *pVictim)
 {
-    pTank->hp--;
+    pVictim->hp = --pVictim->level;
 
     //If the tank is still alive
-    if(pTank->hp)
+    if(pVictim->hp)
     {
-        //setTankLevel(pTank, pTank->hp);
+		TANK_TEX(pVictim) = normalTexTbl[pVictim->id][pVictim->level];
+		pVictim->fsm.states[TANK_DEAD_STATE].pTex = deadTexTbl[pVictim->level];
         return;
     }
 
-    //this should be moved to a function that checks for the
-	// victory conditions
-	if(pTank->id == TANKID_PLAYER1)
-		cfg.p1.lives --;
+    pVictim->fsm.currentState = TANK_DEAD_STATE;
 
-	if(pTank->id == TANKID_PLAYER2)
-		cfg.p2.lives --;
 
 }
 
@@ -1762,7 +1755,6 @@ void enemyTankHitByPlayerBullet(Tank *pAttacker, Tank *pVictim)
     if(pAttacker->id == TANKID_PLAYER2)
         cfg.p2.score += pVictim->level * 100;
 
-	setTimer(&pVictim->timer1, 1000);
 }
 
 
@@ -2086,7 +2078,7 @@ int handleBulletTerrainCollision(Bullet *pBullet)
 			map[line1 * 13 + col1].pTex = NULL;
 			map[line1 * 13 + col1].type = TERRAIN_NONE;
 			*/
-			breakTerrain((int)pBullet->angle, line1, col1);
+			breakTerrain((int)pBullet->angle, line1, col1, pBullet->pOwner->level);
 			hit = true;
 		}
     }
@@ -2100,7 +2092,7 @@ int handleBulletTerrainCollision(Bullet *pBullet)
 			map[line2 * 13 + col2].pTex = NULL;
 			map[line2 * 13 + col2].type = TERRAIN_NONE;
 			*/
-			breakTerrain((int)pBullet->angle, line2, col2);
+			breakTerrain((int)pBullet->angle, line2, col2, pBullet->pOwner->level);
 			hit = true;
 		}
 	}
@@ -2108,10 +2100,13 @@ int handleBulletTerrainCollision(Bullet *pBullet)
 	return hit;
 }
 
-void breakTerrain(int angle, int line, int col)
+void breakTerrain(int angle, int line, int col, int level)
 {
 	int breakFactor = 16;
 	int index = line * 13 + col;
+
+	if((level != 4) && (map[index].type == TERRAIN_SHIELD))
+		return;
 
 	if(map[index].type == TERRAIN_SHIELD)
 		breakFactor = 32;
@@ -2178,8 +2173,11 @@ void renderTankIconArray(void)
  */
 void tankReadAI(Tank *pTank)
 {
-	if((pTank->currMe == ME_STOP))
+	if((pTank->currMe == ME_STOP) && (isTimerUp(&pTank->holdTimer)))
 		pTank->newMe =  (rand() % 5);
+
+	if((rand() % 4) > 2)
+		pTank->fe = FE_FIRE;
 }
 
 void tankEmptyInput(Tank* pTank) {}
@@ -2355,6 +2353,31 @@ void resetTankArray(void)
 	}
 }
 
-/* TODO: IMPLEMENT THIS */
-void runPlayerTankDeadState(Tank *pTank) {}
+void runPlayerTankDeadState(Tank *pTank)
+{
+	int lives;
+	if(!isTimerUp(&pTank->timer1))
+		return;
 
+	if(pTank->id == TANKID_PLAYER1)
+		lives = --cfg.p1.lives;
+
+	if(pTank->id == TANKID_PLAYER2)
+		lives = --cfg.p2.lives;
+
+
+	if(lives)
+		resetTank(pTank, 1, 0.0);
+	else
+		pTank->fsm.currentState = TANK_INVALID_STATE;
+}
+
+void pre_runTankDeadState(Tank *pTank)
+{
+	setTimer(&pTank->timer1, 1000);
+
+	if(pTank->driver == HUMAN_DRIVER)
+		pTank->fsm.states[TANK_DEAD_STATE].run = runPlayerTankDeadState;
+	else
+		pTank->fsm.states[TANK_DEAD_STATE].run = runCpuTankDeadState;
+}
