@@ -8,10 +8,10 @@
 #define MAX_TANKS 6
 #define MAX_TERRAIN_TILES 169
 
-#define DEFAULT_TANK_SPEED 4u //pixels per update step
-#define DEFAULT_FIRE_INTERVAL 500 //MS
+#define MAX_TANK_SPEED 2u //pixels per update step
+#define DEFAULT_FIRE_INTERVAL 800 //MS
 #define DEFAULT_SPAWN_STATE_DURATION 4000 //MS
-#define DEFAULT_BULLET_SPEED 6u //pixels per update step
+#define DEFAULT_BULLET_SPEED 2u //pixels per update step
 #define MAX_SCORE_LABELS 10
 #define SCORE_LABEL_INTERVAL_MSEC 2000
 
@@ -96,27 +96,4 @@ typedef struct Bonus{
     bool isVisible;
 }Bonus;
 
-void updateTanks(void);
-SDL_Rect* moveTank(Tank *pTank);
-void fireTank(Tank *pTank);
-void initTank(Tank *pTank, int level, int x, int y, float angle,
-			 enum DriverType type, enum TankId id);
-void initTankArray(void);
-void initBullets(void);
-void updateBullets(void);
-void renderTanks(void);
-void renderBullets(void);
-bool isInScene(SDL_Rect* pRect);
-bool initTerrain(void);
-bool isInvalidMapLocation(int x, int y);
-void drawTerrain(void);
-void updatePlayState(void);
-bool initPlayState(void);
-void handleInputPlayState(void);
-void renderPlayState(void);
-void tankReadKeyboard(Tank* pTank);
-void tankReadGamepad(Tank* pTank);
-void renderPlayState(void);
-void handleGameOver(void);
-void renderGameOver(void);
 #endif //PLAY_STATE_H

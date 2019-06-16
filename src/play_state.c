@@ -1,5 +1,4 @@
 #include "play_state.h"
-#include "global_defs.h"
 #include "fsm.h"
 #include "util.h"
 #include "resource_mgr.h"
@@ -44,6 +43,27 @@ void resetTankArray(void);
 void breakTerrain(int angle, int line, int col, int level);
 void runTankPrespawnState(Tank *pTank);
 void pre_runTankDeadState(Tank *pTank);
+void initBullets(void);
+void updateTanks(void);
+SDL_Rect* moveTank(Tank *pTank);
+void fireTank(Tank *pTank);
+void initTank(Tank *pTank, int level, int x, int y, float angle,
+             enum DriverType type, enum TankId id);
+void initBullets(void);
+void updateBullets(void);
+void renderTanks(void);
+void renderBullets(void);
+bool isInScene(SDL_Rect* pRect);
+bool initTerrain(void);
+bool isInvalidMapLocation(int x, int y);
+void drawTerrain(void);
+void updatePlayState(void);
+bool initPlayState(void);
+void handleInputPlayState(void);
+void renderPlayState(void);
+void tankReadKeyboard(Tank* pTank);
+void tankReadGamepad(Tank* pTank);
+
 
 /* Terrain building functions */
 void buildTerrain1(void);
@@ -89,7 +109,7 @@ void runTankNormalState(Tank *pTank)
 
 	pTank->currMe = pTank->newMe;
 
-	if(pTank->currMe == ME_STOP)
+	if(!pTank->speed)
 	{
 		fireTank(pTank);
 		return;
@@ -97,9 +117,6 @@ void runTankNormalState(Tank *pTank)
 
 	switch(pTank->currMe)
 	{
-	   case ME_STOP:
-		   break;
-
 	   case ME_UP:
 		   pTank->angle = 0.0f;
 		   break;
@@ -125,10 +142,7 @@ void runTankNormalState(Tank *pTank)
 
 	//don't go out of bounds
 	if(!isInScene(pNewPos))
-	{
-		pTank->currMe = ME_STOP;
 		return;
-	}
 
 	//check collision with the other tanks
 	for(int j = 0; j < MAX_TANKS; j++)
@@ -161,7 +175,8 @@ void runTankNormalState(Tank *pTank)
 	}
 	else
 	{
-		pTank->currMe = ME_STOP;
+		if(pTank->speed > 0)
+			pTank->speed--;
 	}
 
 	fireTank(pTank);
@@ -386,26 +401,43 @@ void tankReadKeyboard(Tank *pTank)
 
     if(currentKeyStates [SDL_SCANCODE_UP]){
         pTank->newMe = ME_UP;
+
+		if(pTank->speed < MAX_TANK_SPEED)
+			pTank->speed++;
+
         return;
     }
 
     if(currentKeyStates [SDL_SCANCODE_LEFT]){
         pTank->newMe = ME_LEFT;
+
+		if(pTank->speed < MAX_TANK_SPEED)
+			pTank->speed++;
+
         return;
     }
 
     if(currentKeyStates [SDL_SCANCODE_DOWN]){
         pTank->newMe = ME_DOWN;
+
+		if(pTank->speed < MAX_TANK_SPEED)
+			pTank->speed++;
+
         return;
     }
 
     if(currentKeyStates [SDL_SCANCODE_RIGHT]){
         pTank->newMe = ME_RIGHT;
+
+		if(pTank->speed < MAX_TANK_SPEED)
+			pTank->speed++;
+
         return;
     }
 
     //When none of the movement keys are pressed, stop the tank
-	pTank->newMe = ME_STOP;
+	if(pTank->speed > 0)
+		pTank->speed--;
 }
 
 void tankReadGamepad(Tank* pTank)
@@ -435,13 +467,8 @@ void tankReadGamepad(Tank* pTank)
     }
 
     //When none of the movement buttons are pressed, just stop the tank
-    pTank->newMe = ME_STOP;
-}
-
-
-void handleGameOver(void)
-{
-    return;
+	if(pTank->speed > 0)
+		pTank->speed--;
 }
 
 SDL_Rect* moveTank(Tank *pTank )
@@ -454,9 +481,6 @@ SDL_Rect* moveTank(Tank *pTank )
 
     switch(pTank->currMe)
     {
-       case ME_STOP:
-           return &rect;
-
        case ME_UP:
            rect.y -= pTank->speed;
            break;
@@ -576,7 +600,7 @@ void initTank(Tank *pTank, int level, int x, int y, float angle,
 	pTank->spawn_rect.y = y;
 	pTank->spawn_rect.w = 64;
 	pTank->spawn_rect.h = 64;
-    pTank->speed = DEFAULT_TANK_SPEED; //pixels per frame
+    pTank->speed = 0; //pixels per frame
 	pTank->driver = driver;
 	resetTank(pTank, level, angle);
 
@@ -1682,16 +1706,23 @@ int handleBulletTankCollision(Bullet *pBullet)
 	{
 		pTank = &tank_array[m];
 
-		/* We don't care about collision with not normal tanks */
+		/* We don't care about collision with tanks nost in the normal state */
 		if(pTank->fsm.currentState != TANK_NORMAL_STATE)
 			continue;
 
 		if(SDL_HasIntersection(&pBullet->rect, &pTank->rect) != SDL_TRUE)
 			continue;
 
-		//If you're hit by your own bullet, nothing happens
+		//If you're hit by your own bullet, the bullet flies through you
 		if(pBullet->pOwner == pTank)
 			continue;
+		
+		/* If members of the same team shoot eachother, the bullet stops */
+		if(pBullet->pOwner->driver == pTank->driver)
+		{
+			hits++;
+			continue;
+		}
 
 		//If a player is hit by an enemy bullet
 		if((pBullet->pOwner->driver == CPU_DRIVER) && (pTank->driver == HUMAN_DRIVER))
@@ -1988,8 +2019,6 @@ bool tankTerrainCollision(Tank* pTank, SDL_Rect* pRect)
 			col2 = (pRect->x - SCENE_TOP_LEFT_X + pRect->w - 1)/64;
 			break;
 
-		case ME_STOP:
-			return false;
 	}
 
 	/* As soon as you detect a collision, return */
@@ -2000,7 +2029,9 @@ bool tankTerrainCollision(Tank* pTank, SDL_Rect* pRect)
     {
             if(SDL_HasIntersection(pRect, &map[line1 * 13 + col1].rect) == SDL_TRUE)
             {
-				pTank->currMe = ME_STOP;
+				if(pTank->speed > 0)
+					pTank->speed--;
+
 				return true;
             }
     }
@@ -2012,7 +2043,9 @@ bool tankTerrainCollision(Tank* pTank, SDL_Rect* pRect)
 	{
             if(SDL_HasIntersection(pRect, &map[line2 * 13 + col2].rect) == SDL_TRUE)
             {
-				pTank->currMe = ME_STOP;
+				if(pTank->speed > 0)
+					pTank->speed--;
+
 				return true;
             }
 	}
@@ -2173,8 +2206,8 @@ void renderTankIconArray(void)
  */
 void tankReadAI(Tank *pTank)
 {
-	if((pTank->currMe == ME_STOP) && (isTimerUp(&pTank->holdTimer)))
-		pTank->newMe =  (rand() % 5);
+	if((!pTank->speed) && (isTimerUp(&pTank->holdTimer)))
+		pTank->newMe =  (rand() % 4);
 
 	if((rand() % 4) > 2)
 		pTank->fe = FE_FIRE;
@@ -2319,8 +2352,8 @@ void resetTank(Tank *pTank, int level, float angle)
     pTank->rect.x = pTank->spawn_rect.x;
     pTank->rect.y = pTank->spawn_rect.y;
     pTank->angle = angle;
-    pTank->newMe = ME_STOP;
-    pTank->currMe = ME_STOP; 
+    pTank->speed = 0;
+    pTank->currMe = 0;
     pTank->fe = FE_NONE;
     pTank->hp = level; 
 	pTank->fsm.states[TANK_NORMAL_STATE].pTex = normalTexTbl[pTank->id][pTank->level];
