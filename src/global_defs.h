@@ -41,5 +41,7 @@ typedef struct Config {
 	Player p2;
 } Config;
 
+#define TANK_CURR_STATE(pTank) \
+pTank->fsm.states[pTank->fsm.currentState]
 
 #endif //GLOBAL_DEFS_H

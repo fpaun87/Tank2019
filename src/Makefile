@@ -13,7 +13,7 @@ else
 EXE := $(EXE_RELEASE)
 endif
 
-SRC := main.c resource_mgr.c play_state.c util.c menu_state.c level_state.c pause_state.c game_over_state.c timer.c
+SRC := main.c resource_mgr.c play_state.c util.c menu_state.c level_state.c pause_state.c game_over_state.c timer.c bonus.c
 
 OBJS:=$(SRC:.c=.o)
 
@@ -47,6 +47,9 @@ pause_state.o: pause_state.c
 
 game_over_state.o: game_over_state.c
 	$(CC) $(CFLAGS) game_over_state.c
+
+bonus.o: bonus.c
+	$(CC) $(CFLAGS) bonus.c
 
 .PHONY: clean
 clean:

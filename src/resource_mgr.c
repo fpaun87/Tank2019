@@ -190,9 +190,6 @@ bool rsmgrInit(void)
     if(!loadTexture(TEX_ID_SCORE_400, SPRITE_PATH"/400.png"))
         return false;
 
-    if(!loadTexture(TEX_ID_SCORE_500, SPRITE_PATH"/500.png"))
-        return false;
-
     if(!loadTexture(TEX_ID_BONUS_STAR, SPRITE_PATH"/bonus_star.png"))
         return false;
 
@@ -215,6 +212,9 @@ bool rsmgrInit(void)
         return false;
 
     if(!loadTexture(TEX_ID_BONUS_CLOCK, SPRITE_PATH"/bonus_clock.png"))
+        return false;
+
+    if(!loadTexture(TEX_ID_BOAT, SPRITE_PATH"/boat.png"))
         return false;
 
     if(!loadTexture(TEX_ID_MENU, SPRITE_PATH"/menu.png"))
@@ -245,6 +245,9 @@ bool rsmgrInit(void)
         return false;
 
     if(!loadTexture(TEX_ID_TANKL4_XRAY, SPRITE_PATH"/tankl4_xray.png"))
+        return false;
+
+    if(!loadTexture(TEX_ID_ENERGY_SHIELD, SPRITE_PATH"/energy_shield.png"))
         return false;
 
     /* Load fonts */

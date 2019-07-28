@@ -31,6 +31,7 @@ bool initPauseState(void)
 
 void handleInputPauseState(void)
 {
+	Tank *pTank = NULL;
     static SDL_Event event;
     //handle events on queue
     while(SDL_PollEvent(&event))
@@ -48,8 +49,9 @@ void handleInputPauseState(void)
 					//Resume all the timers
 					for(int i = 0; i < MAX_TANKS; i++)
 					{
-						resumeTimer(&tank_array[i].timer1);
-						resumeTimer(&tank_array[i].timer2);
+						pTank = &tank_array[i];
+						resumeTimer(&TANK_CURR_STATE(pTank).blinkTimer);
+						resumeTimer(&TANK_CURR_STATE(pTank).timer);
 					}
 
 					//Pause the score label timers
@@ -107,6 +109,7 @@ void runPauseState(void)
 
 void pre_runPauseState(void)
 {
+	Tank *pTank = NULL;
 	//Set the timer
 	setTimer(&timer, BLINK_INTERVAL_MS);
 	renderText = true;
@@ -114,8 +117,9 @@ void pre_runPauseState(void)
 	//Pause all the tank timers
     for(int i = 0; i < MAX_TANKS; i++)
 	{
-		pauseTimer(&tank_array[i].timer1);
-		pauseTimer(&tank_array[i].timer2);
+		pTank = &tank_array[i];
+		pauseTimer(&TANK_CURR_STATE(pTank).blinkTimer);
+		pauseTimer(&TANK_CURR_STATE(pTank).timer);
 	}	
 
 	//Pause the score label timers

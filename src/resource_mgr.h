@@ -5,7 +5,7 @@
 #include <SDL2/SDL_ttf.h>
 
 #define MAX_PATH_LEN 80
-#define MAX_TEX_RESOURCES 48
+#define MAX_TEX_RESOURCES   49
 #define MAX_MUSIC_RESOURCES 1
 #define MAX_CHUNK_RESOURCES 1
 #define RESOURCE_PATH "/home/florin/projects/c/tank2019/resources/"
@@ -40,7 +40,7 @@
 #define TEX_ID_SCORE_200       23
 #define TEX_ID_SCORE_300       24
 #define TEX_ID_SCORE_400       25
-#define TEX_ID_SCORE_500       26
+#define TEX_ID_BOAT		       26
 #define TEX_ID_BONUS_STAR      27
 #define TEX_ID_BONUS_TANK      28
 #define TEX_ID_BONUS_SHOVEL    29
@@ -62,6 +62,7 @@
 #define TEX_ID_TANKL2_XRAY     45
 #define TEX_ID_TANKL3_XRAY     46
 #define TEX_ID_TANKL4_XRAY     47
+#define TEX_ID_ENERGY_SHIELD   48
 
 //Music IDs
 #define MUSIC_ID_IDLE           0
