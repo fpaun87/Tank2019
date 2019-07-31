@@ -17,6 +17,8 @@ SRC := main.c resource_mgr.c play_state.c util.c menu_state.c level_state.c paus
 
 OBJS:=$(SRC:.c=.o)
 
+all: EXE tags
+
 EXE: $(OBJS)
 	$(CC) $(LDFLAGS) $(OBJS) -o $(EXE_LOCATION)/$(EXE)
 
@@ -53,4 +55,10 @@ bonus.o: bonus.c
 
 .PHONY: clean
 clean:
-	rm -f $(EXE_LOCATION)/$(EXE_RELEASE) $(EXE_LOCATION)/$(EXE_DBG) *.o
+	rm -f $(EXE_LOCATION)/$(EXE_RELEASE) $(EXE_LOCATION)/$(EXE_DBG) *.o cscope.in.out cscope.out cscope.po.out tags
+
+.PHONY: tags
+tags:
+	ctags -R
+	cscope -bqR
+

@@ -105,7 +105,7 @@ void runTankNormalState(Tank *pTank)
 
 	pTank->currMe = pTank->newMe;
 
-	if(!pTank->speed)
+	if(pTank->currMe == ME_STOP)
 	{
 		fireTank(pTank);
 		return;
@@ -138,7 +138,11 @@ void runTankNormalState(Tank *pTank)
 
 	//don't go out of bounds
 	if(!isInScene(pNewPos))
+	{
+		pTank->currMe = ME_STOP;
 		return;
+	}
+
 
 	//check collision with the other tanks
 	for(int j = 0; j < MAX_TANKS; j++)
@@ -163,16 +167,12 @@ void runTankNormalState(Tank *pTank)
 	//check collision with terrain
 	//Let's change this into a function
 	hitsTerrain = tankTerrainCollision(pTank, pNewPos);
-			
+
+
 	if(!hitsTank && !hitsTerrain)
 	{
 		pTank->rect.x = pNewPos->x;
 		pTank->rect.y = pNewPos->y;
-	}
-	else
-	{
-		if(pTank->speed > 0)
-			pTank->speed--;
 	}
 
 	//check collisions with bonus
@@ -417,43 +417,26 @@ void tankReadKeyboard(Tank *pTank)
 
     if(currentKeyStates [SDL_SCANCODE_UP]){
         pTank->newMe = ME_UP;
-
-		if(pTank->speed < MAX_TANK_SPEED)
-			pTank->speed++;
-
         return;
     }
 
     if(currentKeyStates [SDL_SCANCODE_LEFT]){
         pTank->newMe = ME_LEFT;
-
-		if(pTank->speed < MAX_TANK_SPEED)
-			pTank->speed++;
-
         return;
     }
 
     if(currentKeyStates [SDL_SCANCODE_DOWN]){
         pTank->newMe = ME_DOWN;
-
-		if(pTank->speed < MAX_TANK_SPEED)
-			pTank->speed++;
-
         return;
     }
 
     if(currentKeyStates [SDL_SCANCODE_RIGHT]){
         pTank->newMe = ME_RIGHT;
-
-		if(pTank->speed < MAX_TANK_SPEED)
-			pTank->speed++;
-
         return;
     }
 
     //When none of the movement keys are pressed, stop the tank
-	if(pTank->speed > 0)
-		pTank->speed--;
+	pTank->newMe = ME_STOP;
 }
 
 void tankReadGamepad(Tank* pTank)
@@ -465,17 +448,11 @@ void tankReadGamepad(Tank* pTank)
     if(SDL_GameControllerGetButton(cfg.pGameCtrl, SDL_CONTROLLER_BUTTON_DPAD_UP)){
         pTank->newMe = ME_UP;
 
-		if(pTank->speed < MAX_TANK_SPEED)
-			pTank->speed++;
-
         return;
     }
 
     if(SDL_GameControllerGetButton(cfg.pGameCtrl, SDL_CONTROLLER_BUTTON_DPAD_LEFT)){
         pTank->newMe = ME_LEFT;
-
-		if(pTank->speed < MAX_TANK_SPEED)
-			pTank->speed++;
 
         return;
     }
@@ -483,24 +460,17 @@ void tankReadGamepad(Tank* pTank)
     if(SDL_GameControllerGetButton(cfg.pGameCtrl, SDL_CONTROLLER_BUTTON_DPAD_DOWN)){
         pTank->newMe = ME_DOWN;
 
-		if(pTank->speed < MAX_TANK_SPEED)
-			pTank->speed++;
-
         return;
     }
 
     if(SDL_GameControllerGetButton(cfg.pGameCtrl, SDL_CONTROLLER_BUTTON_DPAD_RIGHT)){
         pTank->newMe = ME_RIGHT;
 
-		if(pTank->speed < MAX_TANK_SPEED)
-			pTank->speed++;
-
         return;
     }
 
     //When none of the movement buttons are pressed, just stop the tank
-	if(pTank->speed > 0)
-		pTank->speed--;
+	pTank->newMe = ME_STOP;
 }
 
 SDL_Rect* moveTank(Tank *pTank )
@@ -528,6 +498,9 @@ SDL_Rect* moveTank(Tank *pTank )
        case ME_RIGHT:
            rect.x += pTank->speed;
            break;
+
+	   case ME_STOP:
+		   break;
 
        default:
            printf("FATAL ERROR: %s, %d\n", __FUNCTION__, __LINE__);
@@ -632,7 +605,7 @@ void initTank(Tank *pTank, int level, int x, int y, float angle,
 	pTank->spawn_rect.y = y;
 	pTank->spawn_rect.w = 64;
 	pTank->spawn_rect.h = 64;
-    pTank->speed = 0; //pixels per frame
+    pTank->speed = DEFAULT_TANK_SPEED; //pixels per frame
 	pTank->driver = driver;
 	resetTank(pTank, level, angle);
 
@@ -1988,9 +1961,7 @@ bool tankTerrainCollision(Tank* pTank, SDL_Rect* pRect)
     {
             if(SDL_HasIntersection(pRect, &map[line1 * 13 + col1].rect) == SDL_TRUE)
             {
-				if(pTank->speed > 0)
-					pTank->speed--;
-
+				pTank->currMe = ME_STOP;
 				return true;
             }
     }
@@ -2002,9 +1973,7 @@ bool tankTerrainCollision(Tank* pTank, SDL_Rect* pRect)
 	{
             if(SDL_HasIntersection(pRect, &map[line2 * 13 + col2].rect) == SDL_TRUE)
             {
-				if(pTank->speed > 0)
-					pTank->speed--;
-
+				pTank->currMe = ME_STOP;
 				return true;
             }
 	}
@@ -2165,9 +2134,8 @@ void renderTankIconArray(void)
  */
 void tankReadAI(Tank *pTank)
 {
-	if(pTank->speed < MAX_TANK_SPEED) pTank->speed++;
-	if((!pTank->speed) && (isTimerUp(&pTank->holdTimer)))
-		pTank->newMe =  (rand() % 4);
+	if((pTank->currMe == ME_STOP))
+		pTank->newMe =  (rand() % 5);
 
 	if((rand() % 4) > 2)
 		pTank->fe = FE_FIRE;
@@ -2318,8 +2286,7 @@ void resetTank(Tank *pTank, int level, float angle)
     pTank->rect.x = pTank->spawn_rect.x;
     pTank->rect.y = pTank->spawn_rect.y;
     pTank->angle = angle;
-    pTank->speed = 0;
-    pTank->currMe = 0;
+    pTank->currMe = ME_STOP;
     pTank->fe = FE_NONE;
     pTank->hp = level; 
 	pTank->hasBoat = false;
@@ -2425,3 +2392,5 @@ void renderTankImmuneState(Tank *pTank)
 	SDL_RenderCopyEx(cfg.pRen, rsmgrGetTexture(TEX_ID_ENERGY_SHIELD), NULL, &pTank->rect,
 				pTank->angle, NULL, SDL_FLIP_NONE);
 }
+
+

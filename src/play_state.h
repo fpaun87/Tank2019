@@ -8,7 +8,7 @@
 #define MAX_TANKS 6
 #define MAX_TERRAIN_TILES 169
 
-#define MAX_TANK_SPEED 3u //pixels per update step
+#define DEFAULT_TANK_SPEED 2u //pixels per update step
 #define DEFAULT_FIRE_INTERVAL 800 //MS
 #define DEFAULT_SPAWN_STATE_DURATION 4000 //MS
 #define DEFAULT_BLOCKED_STATE_DURATION 5000 //MS

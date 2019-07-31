@@ -15,7 +15,7 @@
 #define SCENE_HEIGHT WND_HEIGHT
 #define FPS (uint32_t) 30u
 
-enum MoveEvent {ME_LEFT, ME_DOWN, ME_UP, ME_RIGHT};
+enum MoveEvent {ME_STOP, ME_LEFT, ME_DOWN, ME_UP, ME_RIGHT};
 enum FireEvent {FE_NONE, FE_FIRE};
 enum FSMStateId {
     FSM_MENU_STATE,
