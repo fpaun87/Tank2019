@@ -2295,7 +2295,6 @@ void resetTank(Tank *pTank, int level, float angle)
     pTank->hp = level; 
 	pTank->hasBoat = false;
 
-/* FLO: UNCOMMENT THIS WHEN DEBUGGING IS DONE
 	if(pTank->driver == CPU_DRIVER)
 	{
 		if((rand() % 4) > 2)
@@ -2304,11 +2303,7 @@ void resetTank(Tank *pTank, int level, float angle)
 			pTank->bonusType = (rand() % 8);
 		}
 	}
-*/
 
-	/* FLO: DELETE THIS 2 LINES WHEN DEBUGGING IS DONE */
-	pTank->hasBonus = true;
-	pTank->bonusType = BONUS_TYPE_CLOCK;
 
 	pTank->fsm.states[TANK_NORMAL_STATE].pTex = normalTexTbl[pTank->id][pTank->level];
 	pTank->fsm.states[TANK_DEAD_STATE].pTex = deadTexTbl[pTank->level];
