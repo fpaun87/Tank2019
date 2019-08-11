@@ -135,7 +135,12 @@ void handleBonusStar(Tank *pTank, Bonus *pBonus)
 	pTank->hp = ++pTank->level;
 
 	pTank->fsm.states[TANK_NORMAL_STATE].pTex = normalTexTbl[pTank->id][pTank->level];
+	pTank->fsm.states[TANK_DEAD_STATE].pTex = deadTexTbl[pTank->level];
+	pTank->fsm.states[TANK_BLOCKED_STATE].pTex = normalTexTbl[pTank->id][pTank->level];
+    pTank->fsm.states[TANK_IMMUNE_STATE].pTex = pTank->fsm.states[TANK_NORMAL_STATE].pTex;
 
+	if(pTank->driver == HUMAN_DRIVER)
+		pTank->fsm.states[TANK_SPAWN_STATE].pTex = normalTexTbl[pTank->id][pTank->level];
 }
 
 void handleBonusTank(Tank *pTank, Bonus *pBonus)
@@ -163,6 +168,7 @@ void handleBonusHelmet(Tank *pTank, Bonus *pBonus)
 	pBonus->enabled = false;
 	pBonus->isVisible = false;
 	pTank->fsm.currentState = TANK_IMMUNE_STATE;
+
 	setTimer(&pTank->fsm.states[TANK_IMMUNE_STATE].timer, DEFAULT_IMMUNE_STATE_DURATION);
 }
 
@@ -182,6 +188,12 @@ void handleBonusGun(Tank *pTank, Bonus *pBonus)
 
 	pTank->fsm.states[TANK_NORMAL_STATE].pTex = normalTexTbl[pTank->id][pTank->level];
 	pTank->fsm.states[TANK_DEAD_STATE].pTex = deadTexTbl[pTank->level];
+    pTank->fsm.states[TANK_BLOCKED_STATE].pTex = normalTexTbl[pTank->id][pTank->level];
+    pTank->fsm.states[TANK_IMMUNE_STATE].pTex = pTank->fsm.states[TANK_NORMAL_STATE].pTex;
+
+    if(pTank->driver == HUMAN_DRIVER)
+        pTank->fsm.states[TANK_SPAWN_STATE].pTex = normalTexTbl[pTank->id][pTank->level];
+
 }
 
 /* Put the oposite team in dead state */
@@ -261,18 +273,42 @@ void handleBonusShovel(Tank *pTank, Bonus *pBonus)
 
 	map[12*13+5].pTex = rsmgrGetTexture(texId);
     map[12*13+5].type = type;
+    map[12*13+5].rect.x = SCENE_TOP_LEFT_X + 5 * 64 + 32;
+    map[12*13+5].rect.y = 12 * 64;
+    map[12*13+5].rect.w = 32;
+    map[12*13+5].rect.h = 64;
 
 	map[12*13+7].pTex = rsmgrGetTexture(texId);
     map[12*13+7].type = type;
+    map[12*13+7].rect.x = SCENE_TOP_LEFT_X + 7 * 64;
+    map[12*13+7].rect.y = 12 * 64;
+    map[12*13+7].rect.w = 32;
+    map[12*13+7].rect.h = 64;
+
 
 	map[11*13+5].pTex = rsmgrGetTexture(texId);
     map[11*13+5].type = type;
+    map[11*13+5].rect.x = SCENE_TOP_LEFT_X + 5 * 64 + 32;
+    map[11*13+5].rect.y = 11 * 64 + 32;
+    map[11*13+5].rect.w = 32;
+    map[11*13+5].rect.h = 32;
+
 
 	map[11*13+6].pTex = rsmgrGetTexture(texId);
     map[11*13+6].type = type;
+    map[11*13+6].rect.x = SCENE_TOP_LEFT_X + 6 * 64;
+    map[11*13+6].rect.y = 11 * 64 + 32;
+    map[11*13+6].rect.w = 64;
+    map[11*13+6].rect.h = 32;
+
 
 	map[11*13+7].pTex = rsmgrGetTexture(texId);
     map[11*13+7].type = type;
+    map[11*13+7].rect.x = SCENE_TOP_LEFT_X + 7 * 64;
+    map[11*13+7].rect.y = 11 * 64 + 32;
+    map[11*13+7].rect.w = 32;
+    map[11*13+7].rect.h = 32;
+
 
 }
 

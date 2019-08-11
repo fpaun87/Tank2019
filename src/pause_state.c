@@ -11,6 +11,7 @@ extern Config cfg;
 extern FSM fsm;
 extern Tank tank_array[MAX_TANKS];
 extern ScoreLabel scoreLabelArray[MAX_SCORE_LABELS];
+extern Bonus bonusArray[BONUS_COUNT];
 
 bool initPauseState(void);
 void handleInputPauseState(void);
@@ -54,10 +55,17 @@ void handleInputPauseState(void)
 						resumeTimer(&TANK_CURR_STATE(pTank).timer);
 					}
 
-					//Pause the score label timers
+					//Resume the score label timers
 					for(int i = 0; i < MAX_SCORE_LABELS; i++)
 					{
 						resumeTimer(&scoreLabelArray[i].timer);
+					}
+
+					//Resume the bonus timers
+					for(int i = 0; i < BONUS_COUNT; i++)
+					{
+						resumeTimer(&bonusArray[i].blinkTimer);
+						resumeTimer(&bonusArray[i].lifetimeTimer);	
 					}
 
                     fsm.currentState = FSM_PLAY_STATE;
@@ -126,6 +134,13 @@ void pre_runPauseState(void)
 	for(int i = 0; i < MAX_SCORE_LABELS; i++)
 	{
 		pauseTimer(&scoreLabelArray[i].timer);
+	}
+
+	//Pause the bonus timers
+	for(int i = 0; i < BONUS_COUNT; i++)
+	{
+		pauseTimer(&bonusArray[i].blinkTimer);
+		pauseTimer(&bonusArray[i].lifetimeTimer);	
 	}
 
 	fsm.states[FSM_PAUSE_STATE].run = runPauseState;

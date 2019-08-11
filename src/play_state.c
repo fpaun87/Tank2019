@@ -256,6 +256,7 @@ void handleInputPlayState(void)
             //quit = true;
             fsm.currentState = FSM_MENU_STATE;
 			fsm.states[FSM_PLAY_STATE].run = pre_runPlayState;
+			cfg.p1.score = cfg.p2.score = 0;
             return;
         }
 
@@ -268,6 +269,7 @@ void handleInputPlayState(void)
 					//quit = true;
 					fsm.currentState = FSM_MENU_STATE;
 					fsm.states[FSM_PLAY_STATE].run = pre_runPlayState;
+					cfg.p1.score = cfg.p2.score = 0;
 					return;
 
                 case SDLK_p:
@@ -2137,8 +2139,10 @@ void tankReadAI(Tank *pTank)
 	if((pTank->currMe == ME_STOP))
 		pTank->newMe =  (rand() % 5);
 
+/*
 	if((rand() % 4) > 2)
 		pTank->fe = FE_FIRE;
+*/
 }
 
 void tankEmptyInput(Tank* pTank) {}
@@ -2290,6 +2294,8 @@ void resetTank(Tank *pTank, int level, float angle)
     pTank->fe = FE_NONE;
     pTank->hp = level; 
 	pTank->hasBoat = false;
+
+/* FLO: UNCOMMENT THIS WHEN DEBUGGING IS DONE
 	if(pTank->driver == CPU_DRIVER)
 	{
 		if((rand() % 4) > 2)
@@ -2298,11 +2304,20 @@ void resetTank(Tank *pTank, int level, float angle)
 			pTank->bonusType = (rand() % 8);
 		}
 	}
+*/
+
+	/* FLO: DELETE THIS 2 LINES WHEN DEBUGGING IS DONE */
+	pTank->hasBonus = true;
+	pTank->bonusType = BONUS_TYPE_CLOCK;
 
 	pTank->fsm.states[TANK_NORMAL_STATE].pTex = normalTexTbl[pTank->id][pTank->level];
 	pTank->fsm.states[TANK_DEAD_STATE].pTex = deadTexTbl[pTank->level];
 	pTank->fsm.states[TANK_BLOCKED_STATE].pTex = normalTexTbl[pTank->id][pTank->level];
 	pTank->fsm.states[TANK_IMMUNE_STATE].pTex = pTank->fsm.states[TANK_NORMAL_STATE].pTex;
+
+	if(pTank->driver == HUMAN_DRIVER)
+		pTank->fsm.states[TANK_SPAWN_STATE].pTex = normalTexTbl[pTank->id][pTank->level];
+
 
     pTank->fsm.currentState = TANK_PRE_SPAWN_STATE;
 }
