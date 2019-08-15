@@ -1,11 +1,11 @@
 include ../Makefile
 
-#SHARE_PATH := $(TOP)/Shared/
 CFLAGS += -I /usr/local/include
 LDFLAGS += -L /usr/local/lib -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer -lm
 EXE_LOCATION:= ..
 EXE_DBG := Tank2019_dbg
 EXE_RELEASE := Tank2019
+EDITOR_EXE := te
 
 ifeq ($(debug),1)
 EXE := $(EXE_DBG)
@@ -15,9 +15,13 @@ endif
 
 SRC := main.c resource_mgr.c play_state.c util.c menu_state.c level_state.c pause_state.c game_over_state.c timer.c bonus.c
 
+EDITOR_SRC := main.c
+EDITOR_OBJS := ./editor/$(EDITOR_SRC:.c=.o)
+
 OBJS:=$(SRC:.c=.o)
 
-all: EXE tags
+all: EXE EDITOR_EXE tags
+editor: EDITOR_EXE
 
 EXE: $(OBJS)
 	$(CC) $(LDFLAGS) $(OBJS) -o $(EXE_LOCATION)/$(EXE)
@@ -40,7 +44,6 @@ timer.o: timer.c
 menu_state.o: menu_state.c
 	$(CC) $(CFLAGS) menu_state.c
 
-
 level_state.o: level_state.c
 	$(CC) $(CFLAGS) level_state.c
 
@@ -53,9 +56,15 @@ game_over_state.o: game_over_state.c
 bonus.o: bonus.c
 	$(CC) $(CFLAGS) bonus.c
 
+EDITOR_EXE: $(EDITOR_OBJS)
+	$(CC) $(LDFLAGS) $(EDITOR_OBJS) -o $(EXE_LOCATION)/$(EDITOR_EXE)
+
+editor/main.o: editor/main.c
+	$(CC) $(CFLAGS) editor/main.c -o ./editor/main.o
+
 .PHONY: clean
 clean:
-	rm -f $(EXE_LOCATION)/$(EXE_RELEASE) $(EXE_LOCATION)/$(EXE_DBG) *.o cscope.in.out cscope.out cscope.po.out tags
+	rm -f $(EXE_LOCATION)/$(EXE_RELEASE) $(EXE_LOCATION)/$(EXE_DBG) $(EXE_LOCATION)/$(EDITOR_EXE) *.o editor/*.o cscope.in.out cscope.out cscope.po.out tags
 
 .PHONY: tags
 tags:
