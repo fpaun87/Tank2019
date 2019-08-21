@@ -99,6 +99,80 @@ static bool loadChunk(int id, char* path)
     return true;
 }
 
+static bool loadMaps(void)
+{
+	char fileName[] = MAPS_PATH"/level00.map";
+	int level = 1;
+	int max = 4;
+	FILE *file = NULL;
+	TerrainTile *pTile = NULL;
+	TerrainTile *pMap = NULL;
+
+	for(level = 1; level <= max; level++)
+	{
+		sprintf(&fileName[strlen(MAPS_PATH) + 6], "%02d", level);
+		sprintf(&fileName[strlen(MAPS_PATH) + 8], "%s", ".map");
+		if(!(file = fopen(fileName, "rb")))
+		{
+			printf("%s, %d: Map: %s failed to open\n", __FUNCTION__, __LINE__, fileName);
+			return false;
+		}
+
+		pMap = &rsmgr.allMaps[(level -1 )*MAX_TERRAIN_TILES];
+
+		if(fread(pMap, MAX_TERRAIN_TILES*sizeof(TerrainTile), 1, file) != 1)
+		{
+			printf("%s, %d: Map: %s failed to load\n", __FUNCTION__, __LINE__, fileName);
+			return false;
+		}
+
+		fclose(file);
+
+
+		for(int i = 0; i < MAX_TERRAIN_TILES; i++)
+		{
+			pTile = &pMap[i];			
+			pTile->rect.x += SCENE_TOP_LEFT_X;
+
+			switch(pTile->type)
+			{
+				case TERRAIN_NONE:
+					break;
+
+				case TERRAIN_SHIELD:
+					pTile->pTex =  rsmgrGetTexture(TEX_ID_SHIELD);
+					break;
+
+				case TERRAIN_FOREST:
+					pTile->pTex =  rsmgrGetTexture(TEX_ID_FOREST);
+					break;
+
+				case TERRAIN_WATER:
+					pTile->pTex =  rsmgrGetTexture(TEX_ID_WATER);
+					break;
+
+				case TERRAIN_ICE:
+					pTile->pTex =  rsmgrGetTexture(TEX_ID_ICE);
+					break;
+
+				case TERRAIN_BRICK:
+					pTile->pTex =  rsmgrGetTexture(TEX_ID_BRICK);
+					break;
+
+				case TERRAIN_EAGLE:
+					pTile->pTex =  rsmgrGetTexture(TEX_ID_EAGLE);
+					break;
+
+				default:
+					printf("%s : Wrong terrain type detected\n", __FUNCTION__);
+					return false;
+			}
+		}
+	}
+
+	return true;
+}
+
 Mix_Music *rsmgrGetMusic(int musId)
 {
     return rsmgr.musicTable[musId];
@@ -112,6 +186,11 @@ Mix_Chunk *rsmgrGetChunk(int chunkId)
 SDL_Texture *rsmgrGetTexture(int texId)
 {
     return rsmgr.texTable[texId];
+}
+
+TerrainTile *rsmgrGetMap(int level)
+{
+	return &rsmgr.allMaps[(level - 1)*MAX_TERRAIN_TILES];
 }
 
 bool rsmgrInit(void)
@@ -273,6 +352,10 @@ bool rsmgrInit(void)
     /* Load audio chuncks */
     if(!loadChunk(CHUNK_ID_FIRE, AUDIO_PATH"/fire.wav"))
         return false;
+
+	/* Load the maps */
+	if(!loadMaps())
+		return false;
 
     return true;
 }

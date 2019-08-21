@@ -3,15 +3,17 @@
 
 #include <stdbool.h>
 #include <SDL2/SDL_ttf.h>
+#include "play_state.h"
 
 #define MAX_PATH_LEN 80
 #define MAX_TEX_RESOURCES   49
 #define MAX_MUSIC_RESOURCES 1
 #define MAX_CHUNK_RESOURCES 1
-#define RESOURCE_PATH "/home/florin/projects/c/tank2019/resources/"
+#define RESOURCE_PATH "/home/florin/projects/c/tank2019/resources"
 #define SPRITE_PATH   RESOURCE_PATH"/sprites"
 #define FONT_PATH  RESOURCE_PATH"/fonts"
 #define AUDIO_PATH  RESOURCE_PATH"/sound"
+#define MAPS_PATH RESOURCE_PATH"/maps"
 
 //Texture id's
 #define TEX_ID_PLAYER1_LEVEL1   0
@@ -70,16 +72,36 @@
 //Audio Chunk IDs
 #define CHUNK_ID_FIRE           0
 
+#define MAX_TERRAIN_TILES 169
+
+enum TerrainType {
+    TERRAIN_NONE,
+    TERRAIN_SHIELD,
+    TERRAIN_FOREST,
+    TERRAIN_WATER,
+    TERRAIN_ICE,
+    TERRAIN_BRICK,
+    TERRAIN_EAGLE
+};
+
+typedef struct TerrainTile{
+    SDL_Rect rect;
+    SDL_Texture *pTex;
+    enum TerrainType type;
+}TerrainTile;
+
 typedef struct ResourceMgr{
     SDL_Texture *texTable[MAX_TEX_RESOURCES];
     Mix_Music *musicTable[MAX_MUSIC_RESOURCES];
     Mix_Chunk *chunkTable[MAX_CHUNK_RESOURCES];
+	TerrainTile allMaps[50 * MAX_TERRAIN_TILES];
 }ResourceMgr;
 
 
 SDL_Texture *rsmgrGetTexture(int texId);
 Mix_Music *rsmgrGetMusic(int musicId);
 Mix_Chunk *rsmgrGetChunk(int chunkId);
+TerrainTile *rsmgrGetMap(int level);
 bool rsmgrInit(void);
 void rsmgrClose(void);
 

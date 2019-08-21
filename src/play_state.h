@@ -6,7 +6,6 @@
 
 #define MAX_BULLETS 40
 #define MAX_TANKS 6
-#define MAX_TERRAIN_TILES 169
 
 #define DEFAULT_TANK_SPEED 2u //pixels per update step
 #define DEFAULT_FIRE_INTERVAL 800 //MS
@@ -22,15 +21,6 @@
 #define BONUS_LIFETIME_INTERVAL_MS 7000
 #define BONUS_COUNT 15
 
-enum TerrainType {
-	TERRAIN_NONE, 
-	TERRAIN_SHIELD, 
-	TERRAIN_FOREST, 
-	TERRAIN_WATER, 
-	TERRAIN_ICE, 
-	TERRAIN_BRICK, 
-	TERRAIN_EAGLE
-};
 
 typedef enum BONUS_TYPE{
     BONUS_TYPE_STAR,
@@ -76,6 +66,7 @@ typedef struct TankFSM {
 }TankFSM;
 
 typedef enum BONUS_TYPE BONUS_TYPE;
+
 typedef struct Tank{
     SDL_Rect rect;
 	SDL_Rect spawn_rect;
@@ -115,11 +106,6 @@ typedef struct Bullet{
     bool enabled;
 }Bullet;
 
-typedef struct TerrainTile{
-    SDL_Rect rect;
-    SDL_Texture *pTex;
-    enum TerrainType type;
-}TerrainTile;
 
 typedef struct ScoreLabel{
 	bool active;
