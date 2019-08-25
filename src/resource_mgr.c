@@ -103,7 +103,7 @@ static bool loadMaps(void)
 {
 	char fileName[] = MAPS_PATH"/level00.map";
 	int level = 1;
-	int max = 4;
+	int max = 50;
 	FILE *file = NULL;
 	TerrainTile *pTile = NULL;
 	TerrainTile *pMap = NULL;

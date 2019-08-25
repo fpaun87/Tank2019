@@ -485,6 +485,45 @@ void initTerrain(void)
 	map[12*13 + 6].type = TERRAIN_EAGLE;
 	map[12*13 + 6].pTex = texTable[EAGLE];
 
+	//now surround the eagle with brick
+	map[12*13 + 5].type = TERRAIN_BRICK;
+	map[12*13 + 5].pTex = texTable[BRICK_RIGHT];
+	map[12*13 + 5].rect.x = 5 * 64 + 32;
+	map[12*13 + 5].rect.y = 12*64;
+	map[12*13 + 5].rect.w = 32;
+	map[12*13 + 5].rect.h = 64;
+
+	map[12*13 + 7].type = TERRAIN_BRICK;
+	map[12*13 + 7].pTex = texTable[BRICK_LEFT];
+	map[12*13 + 7].rect.x = 7 * 64;
+	map[12*13 + 7].rect.y = 12*64;
+	map[12*13 + 7].rect.w = 32;
+	map[12*13 + 7].rect.h = 64;
+
+
+	map[11*13 + 6].type = TERRAIN_BRICK;
+	map[11*13 + 6].pTex = texTable[BRICK_DOWN];
+	map[11*13 + 6].rect.x = 6 * 64;
+	map[11*13 + 6].rect.y = 11*64 + 32;
+	map[11*13 + 6].rect.w = 64;
+	map[11*13 + 6].rect.h = 32;
+
+	map[11*13 + 5].type = TERRAIN_BRICK;
+	map[11*13 + 5].pTex = texTable[BRICK_Q4];
+	map[11*13 + 5].rect.x = 5 * 64 + 32;
+	map[11*13 + 5].rect.y = 11*64 + 32;
+	map[11*13 + 5].rect.w = 32;
+	map[11*13 + 5].rect.h = 32;
+
+	map[11*13 + 7].type = TERRAIN_BRICK;
+	map[11*13 + 7].pTex = texTable[BRICK_Q3];
+	map[11*13 + 7].rect.x = 7 * 64;
+	map[11*13 + 7].rect.y = 11*64 + 32;;
+	map[11*13 + 7].rect.w = 32;
+	map[11*13 + 7].rect.h = 32;
+
+
+
 }
 
 bool loadTexture(int texId, const char * path)
