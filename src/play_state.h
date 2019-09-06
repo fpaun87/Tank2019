@@ -78,8 +78,6 @@ typedef struct Tank{
     enum MoveEvent currMe;
     enum FireEvent fe;
     bool hasBoat;
-	bool hasBonus;
-	BONUS_TYPE bonusType;
 	enum DriverType driver;
 	enum TankId id;
     int level;

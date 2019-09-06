@@ -97,16 +97,16 @@ void runTankNormalState(Tank *pTank)
     bool hitsTank = false;
 	bool hitsTerrain = false;
 
-	pTank->currMe = pTank->newMe;
 
-	if(pTank->currMe == ME_STOP)
+	if(pTank->newMe == ME_STOP)
 	{
+		pTank->currMe = pTank->newMe;
 		playSound(pTank, CHUNK_ID_IDLE);
 		fireTank(pTank);
 		return;
 	}
 
-	switch(pTank->currMe)
+	switch(pTank->newMe)
 	{
 	   case ME_UP:
 		   pTank->angle = 0.0f;
@@ -168,6 +168,11 @@ void runTankNormalState(Tank *pTank)
 	{
 		pTank->rect.x = pNewPos->x;
 		pTank->rect.y = pNewPos->y;
+		pTank->currMe = pTank->newMe;
+	}
+	else
+	{
+		pTank->currMe = ME_STOP;
 	}
 
 	//check collisions with bonus
@@ -313,6 +318,7 @@ void runPlayState(void)
 		Mix_HaltChannel(-1);
 		fsm.states[FSM_PLAY_STATE].run = pre_runPlayState;
 		fsm.currentState = FSM_GAMEOVER_STATE;
+		return;
 	}
 	
 	handleInputPlayState();
@@ -1341,11 +1347,44 @@ void renderTankIconArray(void)
  */
 void tankReadAI(Tank *pTank)
 {
-	if((pTank->currMe == ME_STOP))
-		pTank->newMe =  (rand() % 5);
+	static Timer timer = {0};
+	int changeIntervalMs = 3000;
 
-	if((rand() % 40) > 38)
-		pTank->fe = FE_FIRE;
+	setTimer(&timer, changeIntervalMs);
+
+	if((pTank->currMe == ME_STOP))
+	{
+		if(rand() % 2)
+		{
+			pTank->newMe =  (rand() % 5);
+		}
+		else
+		{
+			pTank->fe = FE_FIRE;
+			pTank->newMe = pTank->currMe;
+		}
+	}
+	else
+	{
+		/* Every 3s a tank has 50% chances to change direction
+		 * without being blocked
+		 */
+		
+		if(isTimerUp(&timer) && (rand() % 2))
+		{
+			setTimer(&timer, changeIntervalMs);
+			pTank->newMe =  (rand() % 5);
+		}
+		else
+		{
+			pTank->newMe = pTank->currMe;
+		}
+
+		if((rand() % 20) > 18)
+			pTank->fe = FE_FIRE;
+		else
+			pTank->fe = FE_NONE;
+	}
 }
 
 void tankEmptyInput(Tank* pTank) {}
@@ -1470,8 +1509,8 @@ void runCpuTankDeadState(Tank *pTank)
     activateScoreLabel(pTank);
 
 	//Activate a bonus
-	if(pTank->hasBonus)
-		setBonus(pTank->bonusType, pTank);
+	if(rand() % 2)
+		setBonus((rand() % 8), pTank);
 
 	if(cfg.enemiesLeft < 4)
 	{
@@ -1497,15 +1536,6 @@ void resetTank(Tank *pTank, int level, float angle)
     pTank->fe = FE_NONE;
     pTank->hp = level; 
 	pTank->hasBoat = false;
-
-	if(pTank->driver == CPU_DRIVER)
-	{
-		if((rand() % 4) > 2)
-		{
-			pTank->hasBonus = true;
-			pTank->bonusType = (rand() % 8);
-		}
-	}
 
 
 	pTank->fsm.states[TANK_NORMAL_STATE].pTex = normalTexTbl[pTank->id][pTank->level];
