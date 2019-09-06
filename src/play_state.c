@@ -3,6 +3,7 @@
 #include "util.h"
 #include "resource_mgr.h"
 
+
 /* Cause writing this garbage over and over is too hard */
 #define TANK_TEX(pTank)	\
 pTank->fsm.states[pTank->fsm.currentState].pTex 
