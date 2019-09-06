@@ -7,8 +7,7 @@
 #define TANK_TEX(pTank)	\
 pTank->fsm.states[pTank->fsm.currentState].pTex 
 
-#define INTRO_SOUND_CHANNEL 1
-#define ENGINE_SOUND_CHANNEL 2
+#define ENGINE_SOUND_CHANNEL 1
 
 extern FSM fsm;
 extern Config cfg;
@@ -80,7 +79,6 @@ void updateBonusArray(void);
 void renderBonus(Bonus *pBonus);
 
 /* The sound functions prototype */
-void playIntro(void);
 void playSound(Tank *pTank, int soundId);
 
 Tank tank_array[MAX_TANKS];
@@ -262,10 +260,8 @@ void handleInputPlayState(void)
             switch(event.key.keysym.sym)
             {
                 case SDLK_ESCAPE:
-					printf("Why don't you shut the music off?\n");
-					Mix_Pause(-1);
-					Mix_HaltChannel(-1);
-					//quit = true;
+					Mix_HaltMusic();
+					Mix_HaltChannel(1);
 					fsm.currentState = FSM_MENU_STATE;
 					fsm.states[FSM_PLAY_STATE].run = pre_runPlayState;
 					cfg.p1.score = cfg.p2.score = 0;
@@ -273,6 +269,7 @@ void handleInputPlayState(void)
 
                 case SDLK_p:
 					Mix_Pause(-1);
+					Mix_PauseMusic();
 					fsm.currentState = FSM_PAUSE_STATE;
 					return;
             
@@ -302,6 +299,7 @@ void runPlayState(void)
 		{
 			delay = FPS * 6;
 			Mix_HaltChannel(-1);
+			Mix_HaltMusic();
 			fsm.states[FSM_PLAY_STATE].run = pre_runPlayState;
 			fsm.currentState = FSM_LEVEL_STATE;
 			return;
@@ -1001,7 +999,6 @@ void enemyTankHitByPlayerBullet(Tank *pAttacker, Tank *pVictim)
 
     pVictim->fsm.currentState = TANK_DEAD_STATE;
 	playSound(pVictim, CHUNK_ID_EXPLOSION);
-	printf("An enemy should go BOOM\n");
 
     if(pAttacker->id == TANKID_PLAYER1)
         cfg.p1.score += pVictim->level * 100;
@@ -1106,8 +1103,7 @@ void pre_runPlayState(void)
 
     cfg.enemiesLeft = 20;
 
-	printf("PlayIntro...\n");
-	playIntro();
+    Mix_PlayMusic(rsmgrGetMusic(), 1);
 
 	//Last thing to do
 	fsm.states[FSM_PLAY_STATE].run = runPlayState;
@@ -1227,7 +1223,6 @@ int handleBulletTerrainCollision(Bullet *pBullet)
 	{
 		map[162].pTex = rsmgrGetTexture(TEX_ID_DEAD_EAGLE);
 		pBullet->enabled = false;
-		printf("You should play game over now..\n");
 		if(pBullet->pOwner->driver == HUMAN_DRIVER)
 			playSound(pBullet->pOwner, CHUNK_ID_GAME_OVER);
 
@@ -1349,7 +1344,7 @@ void tankReadAI(Tank *pTank)
 	if((pTank->currMe == ME_STOP))
 		pTank->newMe =  (rand() % 5);
 
-	if((rand() % 20) > 18)
+	if((rand() % 40) > 38)
 		pTank->fe = FE_FIRE;
 }
 
@@ -1621,14 +1616,12 @@ void playSound(Tank *pTank, int soundId)
 {
 	static int currEngineSound = CHUNK_ID_MOVE;
 
-	//Block all sounds while intro is playing
-	if(Mix_Playing(INTRO_SOUND_CHANNEL))
+	//Block all sounds while intro music is playing
+	if(Mix_PlayingMusic())
 		return;
 
 	if((pTank->driver == CPU_DRIVER) &&
-		(soundId != CHUNK_ID_EXPLOSION) && 
-		(soundId != CHUNK_ID_BONUS_ACTIVE) && 
-		(soundId != CHUNK_ID_DEFLECTED_BULLET))
+		(soundId == CHUNK_ID_GOT_BONUS))
 		return;
 
 	if((soundId == CHUNK_ID_IDLE) || (soundId == CHUNK_ID_MOVE))
@@ -1658,12 +1651,4 @@ void playSound(Tank *pTank, int soundId)
 }
 
 
-void playIntro(void)
-{
-	//No channel should be playing if you wanna play the intro
-	if(Mix_Playing(-1))
-		Mix_HaltChannel(-1);
-
-    Mix_PlayChannel(INTRO_SOUND_CHANNEL, rsmgrGetChunk(CHUNK_ID_INTRO), 0);
-}
 

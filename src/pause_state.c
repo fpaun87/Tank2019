@@ -64,6 +64,7 @@ void handleInputPauseState(void)
 					}
 
 					Mix_Resume(-1);
+					Mix_ResumeMusic();
                     fsm.currentState = FSM_PLAY_STATE;
 					break;
 

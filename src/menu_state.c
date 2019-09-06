@@ -121,8 +121,9 @@ void renderMenuState(void)
 
 void runMenuState(void) 
 {
+	Mix_HaltChannel(-1);
+	Mix_HaltMusic();
 	handleInputMenuState();
-
 
 	renderMenuState();
 }

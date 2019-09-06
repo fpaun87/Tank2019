@@ -85,6 +85,19 @@ static bool loadChunk(int id, char* path)
     return true;
 }
 
+static bool loadMusic(char *path)
+{
+    Mix_Music *music = Mix_LoadMUS(path);
+    if(!music)
+    {
+        printf("FAILED TO LOAD MUSIC: %s\n", Mix_GetError());
+        return false;
+    }
+    rsmgr.pMusic = music;
+
+    return true;
+}
+
 static bool loadMaps(void)
 {
 	char fileName[] = MAPS_PATH"/level00.map";
@@ -163,6 +176,11 @@ static bool loadMaps(void)
 Mix_Chunk *rsmgrGetChunk(int chunkId)
 {
     return rsmgr.chunkTable[chunkId];
+}
+
+Mix_Music *rsmgrGetMusic(void)
+{
+	return rsmgr.pMusic;
 }
 
 SDL_Texture *rsmgrGetTexture(int texId)
@@ -350,9 +368,6 @@ bool rsmgrInit(void)
     if(!loadChunk(CHUNK_ID_GOT_BONUS, AUDIO_PATH"/got_bonus.wav"))
         return false;
 
-    if(!loadChunk(CHUNK_ID_INTRO, AUDIO_PATH"/intro.wav"))
-        return false;
-
     if(!loadChunk(CHUNK_ID_STOPPED_BULLET, AUDIO_PATH"/stopped_bullet.wav"))
         return false;
 
@@ -365,6 +380,8 @@ bool rsmgrInit(void)
     if(!loadChunk(CHUNK_ID_MOVE, AUDIO_PATH"/move.wav"))
         return false;
 
+    if(!loadMusic(AUDIO_PATH"/intro.wav"))
+        return false;
 
 	/* Load the maps */
 	if(!loadMaps())
@@ -389,5 +406,7 @@ void rsmgrClose(void)
         if(rsmgr.chunkTable[i])
             Mix_FreeChunk(rsmgr.chunkTable[i]);
     }
+
+	Mix_FreeMusic(rsmgr.pMusic);
 
 }

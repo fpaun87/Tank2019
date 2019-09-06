@@ -7,7 +7,8 @@
 
 #define MAX_PATH_LEN 80
 #define MAX_TEX_RESOURCES   49
-#define MAX_CHUNK_RESOURCES 12
+#define MAX_CHUNK_RESOURCES 11
+#define MAX_MUSIC_RESOURCES 1
 #define RESOURCE_PATH "/home/florin/projects/c/tank2019/resources"
 #define SPRITE_PATH   RESOURCE_PATH"/sprites"
 #define FONT_PATH  RESOURCE_PATH"/fonts"
@@ -73,12 +74,11 @@
 #define CHUNK_ID_DEFLECTED_BULLET 		3
 #define CHUNK_ID_EXPLOSION				4
 #define CHUNK_ID_GAME_OVER				5
-#define CHUNK_ID_INTRO					6
-#define CHUNK_ID_STOPPED_BULLET			7
-#define CHUNK_ID_TERRAIN_DESTRUCTION 	8
-#define CHUNK_ID_GOT_BONUS				9
-#define CHUNK_ID_IDLE					10
-#define CHUNK_ID_MOVE					11
+#define CHUNK_ID_STOPPED_BULLET			6
+#define CHUNK_ID_TERRAIN_DESTRUCTION 	7
+#define CHUNK_ID_GOT_BONUS				8
+#define CHUNK_ID_IDLE					9
+#define CHUNK_ID_MOVE					10
 
 
 #define MAX_TERRAIN_TILES 169
@@ -102,12 +102,14 @@ typedef struct TerrainTile{
 typedef struct ResourceMgr{
     SDL_Texture *texTable[MAX_TEX_RESOURCES];
     Mix_Chunk *chunkTable[MAX_CHUNK_RESOURCES];
+	Mix_Music *pMusic;
 	TerrainTile allMaps[50 * MAX_TERRAIN_TILES];
 }ResourceMgr;
 
 
 SDL_Texture *rsmgrGetTexture(int texId);
 Mix_Chunk *rsmgrGetChunk(int chunkId);
+Mix_Music *rsmgrGetMusic(void);
 TerrainTile *rsmgrGetMap(int level);
 bool rsmgrInit(void);
 void rsmgrClose(void);

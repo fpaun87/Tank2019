@@ -63,13 +63,13 @@ bool appInit(void)
     }
 
     //Init the audio system
-    if(Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 2048) < 0)
+    if(Mix_OpenAudio(48000, MIX_DEFAULT_FORMAT, 2, 2048) < 0)
     {
         printf("SDL_mixer could not initialize: %s\n", Mix_GetError());
         return false;
     }
 
-	Mix_AllocateChannels(64);
+	Mix_AllocateChannels(128);
 
     //Hide the mouse pointer
     SDL_ShowCursor(SDL_DISABLE);
