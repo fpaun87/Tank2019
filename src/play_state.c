@@ -85,7 +85,7 @@ Tank tank_array[MAX_TANKS];
 SDL_Rect tankIconArray[20] = {0};
 Bullet bullet_array[MAX_BULLETS];
 SDL_Rect scene;
-TerrainTile *map = NULL;
+TerrainTile map[MAX_TERRAIN_TILES];
 ScoreLabel scoreLabelArray[MAX_SCORE_LABELS];
 SDL_Texture * normalTexTbl[3][5];
 SDL_Texture * deadTexTbl[5];
@@ -1092,7 +1092,7 @@ void pre_runPlayState(void)
 	cfg.noisyTankId = TANKID_PLAYER1;
 
     //get the terrain from the resource manager
-	map = rsmgrGetMap(cfg.Level);
+	memcpy(map, rsmgrGetMap(cfg.Level), MAX_TERRAIN_TILES * sizeof(TerrainTile));
 
 	resetTankArray();	
  
