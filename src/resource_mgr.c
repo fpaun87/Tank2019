@@ -387,6 +387,12 @@ bool rsmgrInit(void)
 	if(!loadMaps())
 		return false;
 
+	if(SDL_GameControllerAddMappingsFromFile(RESOURCE_PATH"/gamecontrollerdb.txt") == -1)
+	{
+		printf("Gamepad mapping could not be loaded! %s\n", SDL_GetError());
+		return false;
+	}
+
     return true;
 }
 

@@ -109,6 +109,17 @@ bool appInit(void)
         return false;
     }
 
+    //init the resource manager
+    if(!rsmgrInit())
+    {
+        SDL_DestroyRenderer(cfg.pRen);
+        SDL_DestroyWindow(cfg.pWin);
+        Mix_Quit();
+		Mix_CloseAudio();
+        SDL_Quit();
+        return false;
+    }
+
     //Use SDL'S  GameController API
     int numOfJoysticks = SDL_NumJoysticks();
     if(numOfJoysticks < 0)
@@ -121,17 +132,6 @@ bool appInit(void)
     cfg.pGameCtrl = SDL_GameControllerOpen(numOfJoysticks-1);
     if(!cfg.pGameCtrl)
         printf("Game controller could not be opened! %s\n", SDL_GetError());
-
-    //init the resource manager
-    if(!rsmgrInit())
-    {
-        SDL_DestroyRenderer(cfg.pRen);
-        SDL_DestroyWindow(cfg.pWin);
-        Mix_Quit();
-		Mix_CloseAudio();
-        SDL_Quit();
-        return false;
-    }
 
     //Initialize the FSM
     memset(&fsm, 0, sizeof(FSM));
