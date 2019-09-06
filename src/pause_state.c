@@ -41,11 +41,6 @@ void handleInputPauseState(void)
         {
             switch(event.key.keysym.sym)
             {
-				/*
-                case SDLK_ESCAPE:
-                    fsm.currentState = FSM_MENU_STATE;
-                    break;
-				*/
 				case SDLK_p:
 					//Resume all the timers
 					for(int i = 0; i < MAX_TANKS; i++)
@@ -68,8 +63,8 @@ void handleInputPauseState(void)
 						resumeTimer(&bonusArray[i].lifetimeTimer);	
 					}
 
+					Mix_Resume(-1);
                     fsm.currentState = FSM_PLAY_STATE;
-					Mix_ResumeMusic();
 					break;
 
             }
@@ -142,6 +137,7 @@ void pre_runPauseState(void)
 		pauseTimer(&bonusArray[i].blinkTimer);
 		pauseTimer(&bonusArray[i].lifetimeTimer);	
 	}
+
 
 	fsm.states[FSM_PAUSE_STATE].run = runPauseState;
 }

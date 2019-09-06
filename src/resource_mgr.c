@@ -72,20 +72,6 @@ static bool loadTexture(int texId, const char * path)
     return true;
 }
 
-static bool loadMusic(int id, char* path)
-{
-    Mix_Music* mus = Mix_LoadMUS(path);
-
-    if(!mus)
-    {
-        printf("FAILED TO LOAD MUSIC: %s\n", Mix_GetError());
-        return false;
-    }
-
-    rsmgr.musicTable[id] = mus;
-    return true;
-}
-
 static bool loadChunk(int id, char* path)
 {
     Mix_Chunk* chunk = Mix_LoadWAV(path);
@@ -173,10 +159,6 @@ static bool loadMaps(void)
 	return true;
 }
 
-Mix_Music *rsmgrGetMusic(int musId)
-{
-    return rsmgr.musicTable[musId];
-}
 
 Mix_Chunk *rsmgrGetChunk(int chunkId)
 {
@@ -345,13 +327,44 @@ bool rsmgrInit(void)
     if(!font2Tex(TEX_ID_PAUSE_FONT, 64, (SDL_Color){170, 170, 255, 255}))
             return false;
 
-    /* Load music */
-    if(!loadMusic(MUSIC_ID_IDLE, AUDIO_PATH"/idle.wav"))
-        return false;
 
     /* Load audio chuncks */
     if(!loadChunk(CHUNK_ID_FIRE, AUDIO_PATH"/fire.wav"))
         return false;
+
+    if(!loadChunk(CHUNK_ID_BONUS_ACTIVE, AUDIO_PATH"/active_bonus.wav"))
+        return false;
+
+    if(!loadChunk(CHUNK_ID_ANOTHER_LIFE, AUDIO_PATH"/another_life.wav"))
+        return false;
+
+    if(!loadChunk(CHUNK_ID_DEFLECTED_BULLET, AUDIO_PATH"/deflected_bullet.wav"))
+        return false;
+
+    if(!loadChunk(CHUNK_ID_EXPLOSION, AUDIO_PATH"/explosion.wav"))
+        return false;
+
+    if(!loadChunk(CHUNK_ID_GAME_OVER, AUDIO_PATH"/game_over.wav"))
+        return false;
+
+    if(!loadChunk(CHUNK_ID_GOT_BONUS, AUDIO_PATH"/got_bonus.wav"))
+        return false;
+
+    if(!loadChunk(CHUNK_ID_INTRO, AUDIO_PATH"/intro.wav"))
+        return false;
+
+    if(!loadChunk(CHUNK_ID_STOPPED_BULLET, AUDIO_PATH"/stopped_bullet.wav"))
+        return false;
+
+    if(!loadChunk(CHUNK_ID_TERRAIN_DESTRUCTION, AUDIO_PATH"/terrain_destruction.wav"))
+        return false;
+
+    if(!loadChunk(CHUNK_ID_IDLE, AUDIO_PATH"/idle.wav"))
+        return false;
+
+    if(!loadChunk(CHUNK_ID_MOVE, AUDIO_PATH"/move.wav"))
+        return false;
+
 
 	/* Load the maps */
 	if(!loadMaps())
@@ -369,12 +382,6 @@ void rsmgrClose(void)
             SDL_DestroyTexture(rsmgr.texTable[i]);
     }
 
-    //Clean the music
-    for(int i = 0; i < MAX_MUSIC_RESOURCES; i++)
-    {
-        if(rsmgr.musicTable[i])
-            Mix_FreeMusic(rsmgr.musicTable[i]);
-    }
 
     //Clean the audio chunks
     for(int i = 0; i < MAX_CHUNK_RESOURCES; i++)
@@ -382,4 +389,5 @@ void rsmgrClose(void)
         if(rsmgr.chunkTable[i])
             Mix_FreeChunk(rsmgr.chunkTable[i]);
     }
+
 }

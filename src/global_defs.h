@@ -39,6 +39,7 @@ typedef struct Config {
     int Level;
 	Player p1;
 	Player p2;
+	int noisyTankId;
 } Config;
 
 #define TANK_CURR_STATE(pTank) \

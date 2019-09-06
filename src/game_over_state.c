@@ -7,6 +7,7 @@
 
 extern Config cfg;
 extern FSM fsm;
+extern void playSound(Tank *pTank, int soundId);
 
 bool initGameOverState(void);
 void handleInputGameOverState(void);
@@ -73,4 +74,7 @@ void pre_runGameOverState(void)
 {
 	y = WND_HEIGHT - 100;
     fsm.states[FSM_GAMEOVER_STATE].run = runGameOverState;
+	Tank t;
+	t.driver = HUMAN_DRIVER;
+	playSound(&t, CHUNK_ID_GAME_OVER);
 }

@@ -7,6 +7,9 @@
 #define TANK_TEX(pTank)	\
 pTank->fsm.states[pTank->fsm.currentState].pTex 
 
+#define INTRO_SOUND_CHANNEL 1
+#define ENGINE_SOUND_CHANNEL 2
+
 extern FSM fsm;
 extern Config cfg;
 extern bool quit;
@@ -42,7 +45,7 @@ void renderTankDeadState(Tank* pTank);
 void resetTank(Tank *pTank, int level, float angle);
 void initTankArray(void);
 void resetTankArray(void);
-void breakTerrain(int angle, int line, int col, int level);
+void breakTerrain(int angle, int line, int col, int level, Tank* pTank);
 void runTankPrespawnState(Tank *pTank);
 void pre_runTankDeadState(Tank *pTank);
 void runTankBlockedState(Tank *pTank);
@@ -76,6 +79,9 @@ void renderBonusArray(void);
 void updateBonusArray(void);
 void renderBonus(Bonus *pBonus);
 
+/* The sound functions prototype */
+void playIntro(void);
+void playSound(Tank *pTank, int soundId);
 
 Tank tank_array[MAX_TANKS];
 SDL_Rect tankIconArray[20] = {0};
@@ -97,6 +103,7 @@ void runTankNormalState(Tank *pTank)
 
 	if(pTank->currMe == ME_STOP)
 	{
+		playSound(pTank, CHUNK_ID_IDLE);
 		fireTank(pTank);
 		return;
 	}
@@ -179,9 +186,9 @@ void runTankNormalState(Tank *pTank)
 		bonusClbkArray[pBonus->type](pTank, pBonus);
 	}
 
-
 	fireTank(pTank);
-
+	playSound(pTank, CHUNK_ID_MOVE);
+	
 }
 
 bool initPlayState(void)
@@ -244,9 +251,9 @@ void handleInputPlayState(void)
         if((event.type == SDL_QUIT))
         {
             //quit = true;
-            fsm.currentState = FSM_MENU_STATE;
 			fsm.states[FSM_PLAY_STATE].run = pre_runPlayState;
 			cfg.p1.score = cfg.p2.score = 0;
+            fsm.currentState = FSM_MENU_STATE;
             return;
         }
 
@@ -255,7 +262,9 @@ void handleInputPlayState(void)
             switch(event.key.keysym.sym)
             {
                 case SDLK_ESCAPE:
-					Mix_HaltMusic();
+					printf("Why don't you shut the music off?\n");
+					Mix_Pause(-1);
+					Mix_HaltChannel(-1);
 					//quit = true;
 					fsm.currentState = FSM_MENU_STATE;
 					fsm.states[FSM_PLAY_STATE].run = pre_runPlayState;
@@ -263,7 +272,7 @@ void handleInputPlayState(void)
 					return;
 
                 case SDLK_p:
-					Mix_PauseMusic();
+					Mix_Pause(-1);
 					fsm.currentState = FSM_PAUSE_STATE;
 					return;
             
@@ -292,7 +301,7 @@ void runPlayState(void)
 		if(!delay--)
 		{
 			delay = FPS * 6;
-			Mix_HaltMusic();
+			Mix_HaltChannel(-1);
 			fsm.states[FSM_PLAY_STATE].run = pre_runPlayState;
 			fsm.currentState = FSM_LEVEL_STATE;
 			return;
@@ -303,7 +312,7 @@ void runPlayState(void)
 	if((map[12 * 13 + 6].pTex == rsmgrGetTexture(TEX_ID_DEAD_EAGLE)) ||
 		((cfg.p1.lives == 0) && (cfg.p2.lives == 0)))
 	{
-		Mix_HaltMusic();
+		Mix_HaltChannel(-1);
 		fsm.states[FSM_PLAY_STATE].run = pre_runPlayState;
 		fsm.currentState = FSM_GAMEOVER_STATE;
 	}
@@ -579,10 +588,10 @@ void fireTank(Tank *pTank)
 	}
     pTank->fe = FE_NONE;
 
+    //Play the fire sound
+	playSound(pTank, CHUNK_ID_FIRE);
     setTimer(&pTank->holdTimer, DEFAULT_FIRE_INTERVAL);
 
-    //Play the fire sound
-    //Mix_PlayChannel(-1, rsmgrGetChunk(CHUNK_ID_FIRE), 0);
 }
 
 void initTank(Tank *pTank, int level, int x, int y, float angle,
@@ -726,6 +735,7 @@ void updateBullets()
         if(!isInScene(&bullet_array[i].rect))
         {
             bullet_array[i].enabled = false;
+			playSound(bullet_array[i].pOwner, CHUNK_ID_STOPPED_BULLET);
 			continue;
         }
 
@@ -748,6 +758,7 @@ void updateBullets()
             if(SDL_HasIntersection(&bullet_array[i].rect, &bullet_array[j].rect) == SDL_TRUE)
             {
                 bullet_array[j].enabled = false;
+				playSound(bullet_array[i].pOwner, CHUNK_ID_DEFLECTED_BULLET);
                 hits++;
             }
         }
@@ -967,9 +978,11 @@ void playerTankHitByEnemyBullet(Tank *pVictim)
     {
 		TANK_TEX(pVictim) = normalTexTbl[pVictim->id][pVictim->level];
 		pVictim->fsm.states[TANK_DEAD_STATE].pTex = deadTexTbl[pVictim->level];
+		playSound(pVictim, CHUNK_ID_DEFLECTED_BULLET);
         return;
     }
 
+	playSound(pVictim, CHUNK_ID_EXPLOSION);
     pVictim->fsm.currentState = TANK_DEAD_STATE;
 
 
@@ -982,11 +995,13 @@ void enemyTankHitByPlayerBullet(Tank *pAttacker, Tank *pVictim)
     //If the victim is till alive
     if(pVictim->hp)
 	{
-
+		playSound(pVictim, CHUNK_ID_DEFLECTED_BULLET);
 		return;
 	}
 
     pVictim->fsm.currentState = TANK_DEAD_STATE;
+	playSound(pVictim, CHUNK_ID_EXPLOSION);
+	printf("An enemy should go BOOM\n");
 
     if(pAttacker->id == TANKID_PLAYER1)
         cfg.p1.score += pVictim->level * 100;
@@ -1077,6 +1092,8 @@ void initScoreLabelArray(void)
 
 void pre_runPlayState(void)
 {
+	cfg.noisyTankId = TANKID_PLAYER1;
+
     //get the terrain from the resource manager
 	map = rsmgrGetMap(cfg.Level);
 
@@ -1089,10 +1106,12 @@ void pre_runPlayState(void)
 
     cfg.enemiesLeft = 20;
 
-	//Mix_PlayMusic(rsmgrGetMusic(MUSIC_ID_IDLE), -1);
+	printf("PlayIntro...\n");
+	playIntro();
 
 	//Last thing to do
 	fsm.states[FSM_PLAY_STATE].run = runPlayState;
+
 }
 
 
@@ -1208,6 +1227,10 @@ int handleBulletTerrainCollision(Bullet *pBullet)
 	{
 		map[162].pTex = rsmgrGetTexture(TEX_ID_DEAD_EAGLE);
 		pBullet->enabled = false;
+		printf("You should play game over now..\n");
+		if(pBullet->pOwner->driver == HUMAN_DRIVER)
+			playSound(pBullet->pOwner, CHUNK_ID_GAME_OVER);
+
 		return true;
 	}
 
@@ -1220,7 +1243,7 @@ int handleBulletTerrainCollision(Bullet *pBullet)
 			map[line1 * 13 + col1].pTex = NULL;
 			map[line1 * 13 + col1].type = TERRAIN_NONE;
 			*/
-			breakTerrain((int)pBullet->angle, line1, col1, pBullet->pOwner->level);
+			breakTerrain((int)pBullet->angle, line1, col1, pBullet->pOwner->level, pBullet->pOwner);
 			hit = true;
 		}
     }
@@ -1234,7 +1257,7 @@ int handleBulletTerrainCollision(Bullet *pBullet)
 			map[line2 * 13 + col2].pTex = NULL;
 			map[line2 * 13 + col2].type = TERRAIN_NONE;
 			*/
-			breakTerrain((int)pBullet->angle, line2, col2, pBullet->pOwner->level);
+			breakTerrain((int)pBullet->angle, line2, col2, pBullet->pOwner->level, pBullet->pOwner);
 			hit = true;
 		}
 	}
@@ -1242,13 +1265,18 @@ int handleBulletTerrainCollision(Bullet *pBullet)
 	return hit;
 }
 
-void breakTerrain(int angle, int line, int col, int level)
+void breakTerrain(int angle, int line, int col, int level, Tank *pTank)
 {
 	int breakFactor = 16;
 	int index = line * 13 + col;
 
 	if((level != 4) && (map[index].type == TERRAIN_SHIELD))
+	{
+		if(pTank->driver == HUMAN_DRIVER)
+			playSound(pTank, CHUNK_ID_STOPPED_BULLET);
+
 		return;
+	}
 
 	if(map[index].type == TERRAIN_SHIELD)
 		breakFactor = 32;
@@ -1283,6 +1311,9 @@ void breakTerrain(int angle, int line, int col, int level)
 		map[index].pTex = NULL;
 		map[index].type = TERRAIN_NONE;
 	}
+
+	if(pTank->driver == HUMAN_DRIVER)
+		playSound(pTank, CHUNK_ID_TERRAIN_DESTRUCTION);
 }
 
 void initTankIconArray(void)
@@ -1318,10 +1349,8 @@ void tankReadAI(Tank *pTank)
 	if((pTank->currMe == ME_STOP))
 		pTank->newMe =  (rand() % 5);
 
-/*
-	if((rand() % 4) > 2)
+	if((rand() % 20) > 18)
 		pTank->fe = FE_FIRE;
-*/
 }
 
 void tankEmptyInput(Tank* pTank) {}
@@ -1541,6 +1570,10 @@ void runPlayerTankDeadState(Tank *pTank)
 	else
 	{
 		pTank->fsm.currentState = TANK_INVALID_STATE;
+
+		if((pTank->id == TANKID_PLAYER1) && cfg.p2.lives)
+			cfg.noisyTankId = TANKID_PLAYER2;
+		
 	}
 
 }
@@ -1553,6 +1586,8 @@ void pre_runTankDeadState(Tank *pTank)
 		pTank->fsm.states[TANK_DEAD_STATE].run = runPlayerTankDeadState;
 	else
 		pTank->fsm.states[TANK_DEAD_STATE].run = runCpuTankDeadState;
+
+	playSound(pTank, CHUNK_ID_EXPLOSION);
 }
 
 void runTankBlockedState(Tank *pTank)
@@ -1582,4 +1617,53 @@ void renderTankImmuneState(Tank *pTank)
 				pTank->angle, NULL, SDL_FLIP_NONE);
 }
 
+void playSound(Tank *pTank, int soundId)
+{
+	static int currEngineSound = CHUNK_ID_MOVE;
+
+	//Block all sounds while intro is playing
+	if(Mix_Playing(INTRO_SOUND_CHANNEL))
+		return;
+
+	if((pTank->driver == CPU_DRIVER) &&
+		(soundId != CHUNK_ID_EXPLOSION) && 
+		(soundId != CHUNK_ID_BONUS_ACTIVE) && 
+		(soundId != CHUNK_ID_DEFLECTED_BULLET))
+		return;
+
+	if((soundId == CHUNK_ID_IDLE) || (soundId == CHUNK_ID_MOVE))
+	{  
+		if(pTank->id != cfg.noisyTankId)
+			return;
+
+		//If you asked to play what's already playing
+		if(currEngineSound == soundId)
+		{
+			if(!Mix_Playing(ENGINE_SOUND_CHANNEL))
+				Mix_PlayChannel(ENGINE_SOUND_CHANNEL, rsmgrGetChunk(soundId), 0);
+
+			return;
+		}
+			
+		//You want to change the background sound
+		if(Mix_Playing(ENGINE_SOUND_CHANNEL))
+			Mix_HaltChannel(ENGINE_SOUND_CHANNEL);
+
+		Mix_PlayChannel(ENGINE_SOUND_CHANNEL, rsmgrGetChunk(soundId), 0);
+		currEngineSound = soundId;
+		return;
+	}
+
+    Mix_PlayChannel(-1, rsmgrGetChunk(soundId), 0);
+}
+
+
+void playIntro(void)
+{
+	//No channel should be playing if you wanna play the intro
+	if(Mix_Playing(-1))
+		Mix_HaltChannel(-1);
+
+    Mix_PlayChannel(INTRO_SOUND_CHANNEL, rsmgrGetChunk(CHUNK_ID_INTRO), 0);
+}
 

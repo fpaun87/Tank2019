@@ -64,6 +64,7 @@ void setBonus(BONUS_TYPE type, Tank *pTank)
 	pBonus->rect.y = pTank->rect.y;
 	pBonus->type = type;
 	pBonus->pTex = rsmgrGetTexture(bonusTexTbl[type]);
+	playSound(pTank, CHUNK_ID_BONUS_ACTIVE);
     setTimer(&pBonus->lifetimeTimer, BONUS_LIFETIME_INTERVAL_MS);
     setTimer(&pBonus->blinkTimer, BONUS_BLINK_INTERVAL_MS);
 }
@@ -141,6 +142,9 @@ void handleBonusStar(Tank *pTank, Bonus *pBonus)
 
 	if(pTank->driver == HUMAN_DRIVER)
 		pTank->fsm.states[TANK_SPAWN_STATE].pTex = normalTexTbl[pTank->id][pTank->level];
+
+	if(pTank->driver == HUMAN_DRIVER)
+		playSound(pTank, CHUNK_ID_GOT_BONUS);
 }
 
 void handleBonusTank(Tank *pTank, Bonus *pBonus)
@@ -161,6 +165,8 @@ void handleBonusTank(Tank *pTank, Bonus *pBonus)
 	if(pTank->id == TANKID_PLAYER2)
 		cfg.p2.lives++;
 
+	if(pTank->driver == HUMAN_DRIVER)
+		playSound(pTank, CHUNK_ID_ANOTHER_LIFE);
 }
 
 void handleBonusHelmet(Tank *pTank, Bonus *pBonus)
@@ -168,6 +174,12 @@ void handleBonusHelmet(Tank *pTank, Bonus *pBonus)
 	pBonus->enabled = false;
 	pBonus->isVisible = false;
 	pTank->fsm.currentState = TANK_IMMUNE_STATE;
+
+	if(pTank->driver == HUMAN_DRIVER)
+		playSound(pTank, CHUNK_ID_GOT_BONUS);
+
+	if(pTank->driver == HUMAN_DRIVER)
+		playSound(pTank, CHUNK_ID_GOT_BONUS);
 
 	setTimer(&pTank->fsm.states[TANK_IMMUNE_STATE].timer, DEFAULT_IMMUNE_STATE_DURATION);
 }
@@ -192,7 +204,10 @@ void handleBonusGun(Tank *pTank, Bonus *pBonus)
     pTank->fsm.states[TANK_IMMUNE_STATE].pTex = pTank->fsm.states[TANK_NORMAL_STATE].pTex;
 
     if(pTank->driver == HUMAN_DRIVER)
+	{
+		playSound(pTank, CHUNK_ID_GOT_BONUS);
         pTank->fsm.states[TANK_SPAWN_STATE].pTex = normalTexTbl[pTank->id][pTank->level];
+	}
 
 }
 
@@ -238,6 +253,9 @@ void handleBonusBomb(Tank *pTank, Bonus *pBonus)
 
 		pTank2->fsm.currentState = TANK_DEAD_STATE;
 	}
+
+	if(pTank->driver == HUMAN_DRIVER)
+		playSound(pTank, CHUNK_ID_GOT_BONUS);
 }
 
 void handleBonusClock(Tank *pTank, Bonus *pBonus)
@@ -255,6 +273,9 @@ void handleBonusClock(Tank *pTank, Bonus *pBonus)
 			setTimer(&pVictim->fsm.states[TANK_BLOCKED_STATE].timer, DEFAULT_BLOCKED_STATE_DURATION);
 		}
 	}
+
+	if(pTank->driver == HUMAN_DRIVER)
+		playSound(pTank, CHUNK_ID_GOT_BONUS);
 	
 }
 
@@ -309,6 +330,8 @@ void handleBonusShovel(Tank *pTank, Bonus *pBonus)
     map[11*13+7].rect.w = 32;
     map[11*13+7].rect.h = 32;
 
+	if(pTank->driver == HUMAN_DRIVER)
+		playSound(pTank, CHUNK_ID_GOT_BONUS);
 
 }
 
@@ -317,5 +340,8 @@ void handleBonusShip(Tank *pTank, Bonus *pBonus)
 	pBonus->enabled = false;
 	pBonus->isVisible = false;
 	pTank->hasBoat = true;
+
+	if(pTank->driver == HUMAN_DRIVER)
+		playSound(pTank, CHUNK_ID_GOT_BONUS);
 }
 
