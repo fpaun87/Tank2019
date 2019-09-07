@@ -9,7 +9,7 @@
 #define MAX_TEX_RESOURCES   49
 #define MAX_CHUNK_RESOURCES 11
 #define MAX_MUSIC_RESOURCES 1
-#define RESOURCE_PATH "/home/florin/projects/c/tank2019/resources"
+#define RESOURCE_PATH "resources"
 #define SPRITE_PATH   RESOURCE_PATH"/sprites"
 #define FONT_PATH  RESOURCE_PATH"/fonts"
 #define AUDIO_PATH  RESOURCE_PATH"/sound"
