@@ -48,7 +48,7 @@ void handleInputMenuState(void)
 					/* 1 player */
 					case MARKER_START_Y:
 						cfg.players = 1;
-						cfg.p1.lives = 2;
+						cfg.p1.lives = 3;
 						cfg.p1.score = 0;
 						cfg.p2.lives = 0;
 						cfg.p2.score = 0;
@@ -57,9 +57,9 @@ void handleInputMenuState(void)
 					/* 2 players */
 					case (MARKER_START_Y + 64 + SPACE):
 						cfg.players = 2;
-						cfg.p1.lives = 2;
+						cfg.p1.lives = 3;
 						cfg.p1.score = 0;
-						cfg.p2.lives = 2;
+						cfg.p2.lives = 3;
 						cfg.p2.score = 0;
 						break;
 

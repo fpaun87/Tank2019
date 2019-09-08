@@ -1,4 +1,4 @@
-CFLAGS :=  -Wall -Wextra -fno-omit-frame-pointer -c
+CFLAGS :=  -Wall -Wextra -fno-omit-frame-pointer -c 
 debug := 1
 
 ifeq ($(debug),1)
@@ -20,13 +20,11 @@ else
 EXE := $(EXE_RELEASE)
 endif
 
-SRC := src/main.c src/resource_mgr.c src/play_state.c src/util.c \
-src/menu_state.c src/level_state.c src/pause_state.c src/game_over_state.c \
-src/timer.c src/bonus.c
-OBJS:=$(SRC:.c=.o)
+OBJS := src/main.o src/resource_mgr.o src/play_state.o src/util.o \
+src/menu_state.o src/level_state.o src/pause_state.o src/game_over_state.o \
+src/timer.o src/bonus.o
 
-EDITOR_SRC := src/editor/main.c
-EDITOR_OBJS := $(EDITOR_SRC:.c=.o)
+EDITOR_OBJS := src/editor/main.o
 
 
 all: EXE EDITOR_EXE tags
@@ -73,10 +71,9 @@ src/editor/main.o: src/editor/main.c
 
 .PHONY: clean
 clean:
-	rm -f $(EXE_RELEASE) $(EXE_DBG) $(EDITOR_EXE) src/*.o src/editor/*.o cscope.in.out cscope.out cscope.po.out tags
+	rm -f $(EXE_RELEASE) $(EXE_DBG) $(EDITOR_EXE) src/*.o editor/*.o cscope.in.out cscope.out cscope.po.out tags
 
 .PHONY: tags
 tags:
 	ctags -R
 	cscope -bqR
-

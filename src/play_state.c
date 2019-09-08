@@ -441,7 +441,10 @@ void tankReadKeyboard(Tank *pTank)
     }
 
     //When none of the movement keys are pressed, stop the tank
-	pTank->newMe = ME_STOP;
+	if(!(pTank->rect.x % 16) && !(pTank->rect.y % 16))
+		pTank->newMe = ME_STOP;
+	else
+		pTank->newMe = pTank->currMe;
 }
 
 void tankReadGamepad(Tank* pTank)
@@ -475,7 +478,10 @@ void tankReadGamepad(Tank* pTank)
     }
 
     //When none of the movement buttons are pressed, just stop the tank
-	pTank->newMe = ME_STOP;
+	if(!(pTank->rect.x % 16) && !(pTank->rect.y % 16))
+		pTank->newMe = ME_STOP;
+	else
+		pTank->newMe = pTank->currMe;
 }
 
 SDL_Rect* moveTank(Tank *pTank )
