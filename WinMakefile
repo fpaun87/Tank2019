@@ -1,18 +1,21 @@
+CC=gcc.exe
 CFLAGS :=  -Wall -Wextra -fno-omit-frame-pointer -c 
 debug := 1
 
 ifeq ($(debug),1)
-	CFLAGS += -g3 -pg -O0
+	CFLAGS += -g3  -O0
 else
 	CFLAGS += -march=native -O3
 endif
 
-CFLAGS += -I /usr/local/include
-LDFLAGS += -L /usr/local/lib -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer -lm
+CFLAGS += -I/c/Users/florin/Documents/SDL2-2.0.10/i686-w64-mingw32/include 
 
-EXE_DBG := Tank2019_dbg
-EXE_RELEASE := Tank2019
-EDITOR_EXE := te
+LDFLAGS += -L/c/Users/florin/Documents/SDL2-2.0.10/i686-w64-mingw32/lib -L/c/Users/florin/Documents/SDL2_ttf-2.0.15/i686-w64-mingw32/lib  -L/c/Users/florin/Documents/SDL2_mixer-2.0.4/i686-w64-mingw32/lib  -L/c/Users/florin/Documents/SDL2_image-2.0.5/i686-w64-mingw32/lib -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer -lm
+
+
+EXE_DBG := Tank2019_dbg.exe
+EXE_RELEASE := Tank2019.exe
+EDITOR_EXE := te.exe
 
 ifeq ($(debug),1)
 EXE := $(EXE_DBG)
@@ -27,11 +30,11 @@ src/timer.o src/bonus.o
 EDITOR_OBJS := src/editor/main.o
 
 
-all: EXE EDITOR_EXE tags
+all: EXE EDITOR_EXE 
 editor: EDITOR_EXE
 
 EXE: $(OBJS)
-	$(CC) $(LDFLAGS) $(OBJS) -o $(EXE)
+	$(CC) $(OBJS) $(LDFLAGS) -o $(EXE)
 
 main.o: main.c
 	$(CC) $(CFLAGS) main.c
@@ -64,7 +67,7 @@ bonus.o: bonus.c
 	$(CC) $(CFLAGS) bonus.c
 
 EDITOR_EXE: $(EDITOR_OBJS)
-	$(CC) $(LDFLAGS) $(EDITOR_OBJS) -o $(EDITOR_EXE)
+	$(CC)  $(EDITOR_OBJS) $(LDFLAGS) -o $(EDITOR_EXE)
 
 src/editor/main.o: src/editor/main.c
 	$(CC) $(CFLAGS) src/editor/main.c -o src/editor/main.o
