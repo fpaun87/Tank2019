@@ -8,9 +8,9 @@ else
 	CFLAGS += -march=native -O3
 endif
 
-CFLAGS += -I/c/Users/florin/Documents/SDL2-2.0.10/i686-w64-mingw32/include 
+CFLAGS += -I/c/Users/Florin/Downloads/SDL2-2.0.10/i686-w64-mingw32/include 
 
-LDFLAGS += -L/c/Users/florin/Documents/SDL2-2.0.10/i686-w64-mingw32/lib -L/c/Users/florin/Documents/SDL2_ttf-2.0.15/i686-w64-mingw32/lib  -L/c/Users/florin/Documents/SDL2_mixer-2.0.4/i686-w64-mingw32/lib  -L/c/Users/florin/Documents/SDL2_image-2.0.5/i686-w64-mingw32/lib -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer -lm
+LDFLAGS += -L/c/Users/Florin/Downloads/SDL2-2.0.10/i686-w64-mingw32/lib -L/c/Users/Florin/Downloads/SDL2_ttf-2.0.15/i686-w64-mingw32/lib  -L/c/Users/Florin/Downloads/SDL2_mixer-2.0.4/i686-w64-mingw32/lib  -L/c/Users/Florin/Downloads/SDL2_image-2.0.5/i686-w64-mingw32/lib -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer -lm
 
 
 EXE_DBG := Tank2019_dbg.exe
