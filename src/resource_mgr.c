@@ -8,6 +8,16 @@
 extern Config cfg;
 static ResourceMgr rsmgr;
 
+struct Block {
+    uint16_t x;
+    uint16_t y;
+    uint16_t w;
+    uint16_t h;
+    int32_t type;
+} __attribute__((packed));
+
+struct Block bmap[MAX_TERRAIN_TILES];
+
 static bool font2Tex(int fontTexId, int size, SDL_Color color)
 {
     SDL_Surface *pTextSurface = NULL;
@@ -119,10 +129,19 @@ static bool loadMaps(void)
 
 		pMap = &rsmgr.allMaps[(level -1 )*MAX_TERRAIN_TILES];
 
-		if(fread(pMap, MAX_TERRAIN_TILES*sizeof(TerrainTile), 1, file) != 1)
+		if(fread(bmap, MAX_TERRAIN_TILES*sizeof(struct Block), 1, file) != 1)
 		{
 			printf("%s, %d: Map: %s failed to load\n", __FUNCTION__, __LINE__, fileName);
 			return false;
+		}
+
+		for(int i = 0; i < MAX_TERRAIN_TILES; i++)
+		{
+			pMap[i].rect.x = bmap[i].x;
+			pMap[i].rect.y = bmap[i].y;
+			pMap[i].rect.w = bmap[i].w;
+			pMap[i].rect.h = bmap[i].h;
+			pMap[i].type = bmap[i].type;
 		}
 
 		fclose(file);

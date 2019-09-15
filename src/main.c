@@ -25,7 +25,7 @@ extern bool initLevelState(void);
 extern bool initPauseState(void);
 extern bool initGameOverState(void);
 
-int main(void)
+int main(int argc, char* argv[])
 {
     if(!appInit())
         return 0;

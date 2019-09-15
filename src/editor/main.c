@@ -59,6 +59,14 @@ typedef struct {
 	int down_limit;
 }Cursor;
 
+struct Block {
+    uint16_t x;
+    uint16_t y;
+    uint16_t w;
+    uint16_t h;
+    int32_t type;
+} __attribute__((packed));
+
 typedef struct {
 	TerrainTile tile;
 	SDL_Rect rect;
@@ -77,6 +85,7 @@ SDL_Rect scene;
 Cursor mapCursor = {{0, 0, 64, 64}, 0, 0, SCENE_WIDTH - 64, 0, SCENE_HEIGHT - 64};
 Cursor menuCursor = {{MENU_X_MIN, MENU_Y_MIN, 64, 64}, 0, MENU_X_MIN, MENU_X_MAX, MENU_Y_MIN, MENU_Y_MAX};
 
+struct Block bmap[MAX_TERRAIN_TILES];
 TerrainTile map[MAX_TERRAIN_TILES];
 MenuTile menu[MAX_TEXTURES];
 
@@ -108,15 +117,22 @@ int main(int argc, char *argv[])
 			printf("ERROR: Couldn't open input file %s\n", argv[1]);
 			return -1;
 		}
-		if(fread(map, sizeof(map), 1, pInFile) != 1)
+		if(fread(bmap, sizeof(bmap), 1, pInFile) != 1)
 		{
 			printf("Error reading the input file!\n");
 			return -1;
 		}
 
+
 		//set the texture pointers
 		for(int i=0; i < MAX_TERRAIN_TILES; i++)
 		{
+			map[i].rect.x = bmap[i].x;
+			map[i].rect.y = bmap[i].y;
+			map[i].rect.w = bmap[i].w;
+			map[i].rect.h = bmap[i].h;
+			map[i].type = bmap[i].type;
+
 			switch(map[i].type)
 			{
 				case TERRAIN_BRICK:
@@ -413,10 +429,16 @@ void appInput(void)
 					map[mapCursor.index].rect.x = mapCursor.rect.x + menu[menuCursor.index].tile.rect.x;
 					map[mapCursor.index].rect.y = mapCursor.rect.y + menu[menuCursor.index].tile.rect.y;
 					map[mapCursor.index].pTex = menu[menuCursor.index].tile.pTex;
+
+					bmap[mapCursor.index].type = menu[menuCursor.index].tile.type;
+					bmap[mapCursor.index].w = menu[menuCursor.index].tile.rect.w;
+					bmap[mapCursor.index].h = menu[menuCursor.index].tile.rect.h;
+					bmap[mapCursor.index].x = mapCursor.rect.x + menu[menuCursor.index].tile.rect.x;
+					bmap[mapCursor.index].y = mapCursor.rect.y + menu[menuCursor.index].tile.rect.y;
 					break;
 
 				case SDLK_s:
-					if(fwrite(map, sizeof(map), 1, pOutFile) == 1)
+					if(fwrite(bmap, sizeof(bmap), 1, pOutFile) == 1)
 						printf("Map successfully written to disk!\n");
 
 					break;
@@ -428,6 +450,7 @@ void appInput(void)
 				case SDLK_x:
 					map[mapCursor.index].type = TERRAIN_NONE;
 					map[mapCursor.index].pTex = NULL;
+					bmap[mapCursor.index].type = TERRAIN_NONE;
 					break;
 
 				default:
@@ -477,6 +500,13 @@ void initTerrain(void)
 			map[i].rect.w = 64;
 			map[i].rect.h = 64;
 			map[i].type = TERRAIN_NONE;
+
+			bmap[i].x = x;
+			bmap[i].y = y;
+			bmap[i].w = 64;
+			bmap[i].h = 64;
+			bmap[i].type = TERRAIN_NONE;
+
 			i++;
 		}
 	}
@@ -523,6 +553,40 @@ void initTerrain(void)
 	map[11*13 + 7].rect.h = 32;
 
 
+	//put the eagle in the bmap
+	bmap[12*13 + 6].type = TERRAIN_EAGLE;
+
+	//now surround the eagle with brick in the bmap
+	bmap[12*13 + 5].type = TERRAIN_BRICK;
+	bmap[12*13 + 5].x = 5 * 64 + 32;
+	bmap[12*13 + 5].y = 12*64;
+	bmap[12*13 + 5].w = 32;
+	bmap[12*13 + 5].h = 64;
+
+	bmap[12*13 + 7].type = TERRAIN_BRICK;
+	bmap[12*13 + 7].x = 7 * 64;
+	bmap[12*13 + 7].y = 12*64;
+	bmap[12*13 + 7].w = 32;
+	bmap[12*13 + 7].h = 64;
+
+
+	bmap[11*13 + 6].type = TERRAIN_BRICK;
+	bmap[11*13 + 6].x = 6 * 64;
+	bmap[11*13 + 6].y = 11*64 + 32;
+	bmap[11*13 + 6].w = 64;
+	bmap[11*13 + 6].h = 32;
+
+	bmap[11*13 + 5].type = TERRAIN_BRICK;
+	bmap[11*13 + 5].x = 5 * 64 + 32;
+	bmap[11*13 + 5].y = 11*64 + 32;
+	bmap[11*13 + 5].w = 32;
+	bmap[11*13 + 5].h = 32;
+
+	bmap[11*13 + 7].type = TERRAIN_BRICK;
+	bmap[11*13 + 7].x = 7 * 64;
+	bmap[11*13 + 7].y = 11*64 + 32;;
+	bmap[11*13 + 7].w = 32;
+	bmap[11*13 + 7].h = 32;
 
 }
 
