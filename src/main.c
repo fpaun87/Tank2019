@@ -86,7 +86,7 @@ bool appInit(void)
     }
 
     //Create a renderer 
-    cfg.pRen = SDL_CreateRenderer(cfg.pWin, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    cfg.pRen = SDL_CreateRenderer(cfg.pWin, -1, SDL_RENDERER_ACCELERATED  );
     if(!cfg.pRen)
     {
         SDL_DestroyWindow(cfg.pWin);

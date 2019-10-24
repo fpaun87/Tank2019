@@ -441,10 +441,26 @@ void tankReadKeyboard(Tank *pTank)
     }
 
     //When none of the movement keys are pressed, stop the tank
-	if(!(pTank->rect.x % 16) && !(pTank->rect.y % 16))
-		pTank->newMe = ME_STOP;
-	else
-		pTank->newMe = pTank->currMe;
+
+	switch(pTank->currMe) {
+		case ME_LEFT:
+		case ME_RIGHT:
+		if(!(pTank->rect.x % 16))
+			pTank->newMe = ME_STOP;
+		else
+			pTank->newMe = pTank->currMe;
+
+		break;
+	
+		case ME_UP:
+		case ME_DOWN:
+		if(!(pTank->rect.y % 16))
+			pTank->newMe = ME_STOP;
+		else
+			pTank->newMe = pTank->currMe;
+		
+		break;
+	}
 }
 
 void tankReadGamepad(Tank* pTank)
@@ -560,7 +576,7 @@ void fireTank(Tank *pTank)
     bullet_array[i].enabled = true;
     bullet_array[i].pOwner = pTank;
 	if((pTank->level == 2) || (pTank->level == 4))	
-		bullet_array[i].speed = DEFAULT_BULLET_SPEED + 4;
+		bullet_array[i].speed = DEFAULT_BULLET_SPEED + 2;
 	else
 		bullet_array[i].speed = DEFAULT_BULLET_SPEED;
 
@@ -589,7 +605,7 @@ void fireTank(Tank *pTank)
 		if(bullet_array[i].angle == (int)90) bullet_array[i].rect.x += 3*bw;
 		if(bullet_array[i].angle == (int)270) bullet_array[i].rect.x -= 3*bw;
 		if(pTank->level == 4)
-			bullet_array[i].speed = DEFAULT_BULLET_SPEED + 4;
+			bullet_array[i].speed = DEFAULT_BULLET_SPEED + 2;
 		else
 			bullet_array[i].speed = DEFAULT_BULLET_SPEED;
 
@@ -844,19 +860,19 @@ void initTankArray(void)
 		tank_array[1].fsm.currentState = TANK_INVALID_STATE;
     
     //Init the enemy tanks
-	level = (rand() % 4) + 1;
+	level = (rand() % 3) + 1;
     initTank(&tank_array[2], level, SCENE_TOP_LEFT_X, SCENE_TOP_LEFT_Y, 180.0f,
 				CPU_DRIVER, TANKID_ENEMY);
 
-	level = (rand() % 4) + 1;
+	level = (rand() % 3) + 1;
     initTank(&tank_array[3], level, SCENE_TOP_LEFT_X + 6*64, SCENE_TOP_LEFT_Y, 180.0f,
 				CPU_DRIVER, TANKID_ENEMY);
 
-	level = (rand() % 4) + 1;
+	level = (rand() % 3) + 1;
     initTank(&tank_array[4], level, SCENE_TOP_LEFT_X + 12*64, SCENE_TOP_LEFT_Y, 180.0f,
 				CPU_DRIVER, TANKID_ENEMY);
 
-	level = (rand() % 4) + 1;
+	level = (rand() % 3) + 1;
     initTank(&tank_array[5], level, SCENE_TOP_LEFT_X + 6*64, SCENE_TOP_LEFT_Y + 2*64, 180.0f,
 				CPU_DRIVER, TANKID_ENEMY);
 
@@ -1354,29 +1370,24 @@ void renderTankIconArray(void)
 void tankReadAI(Tank *pTank)
 {
 	static Timer timer = {0};
-	int changeIntervalMs = 3000;
+	int changeIntervalMs = 2000;
 
 	setTimer(&timer, changeIntervalMs);
 
 	if((pTank->currMe == ME_STOP))
 	{
 		if(rand() % 2)
-		{
 			pTank->newMe =  (rand() % 5);
-		}
 		else
-		{
-			pTank->fe = FE_FIRE;
 			pTank->newMe = pTank->currMe;
-		}
 	}
 	else
 	{
-		/* Every 3s a tank has 50% chances to change direction
+		/* Every 2s a tank has 50% chances to change direction
 		 * without being blocked
 		 */
 		
-		if(isTimerUp(&timer) && (rand() % 2))
+		if(isTimerUp(&timer) /*&& (rand() % 2)*/)
 		{
 			setTimer(&timer, changeIntervalMs);
 			pTank->newMe =  (rand() % 5);
@@ -1386,11 +1397,12 @@ void tankReadAI(Tank *pTank)
 			pTank->newMe = pTank->currMe;
 		}
 
-		if((rand() % 20) > 18)
-			pTank->fe = FE_FIRE;
-		else
-			pTank->fe = FE_NONE;
 	}
+	if((rand() % 500) > 498)
+		pTank->fe = FE_FIRE;
+	else
+		pTank->fe = FE_NONE;
+
 }
 
 void tankEmptyInput(Tank* pTank) {}
@@ -1525,7 +1537,7 @@ void runCpuTankDeadState(Tank *pTank)
 	else
 	{
 		
-		pTank->level = (rand() % 4) + 1;
+		pTank->level = (rand() % 3) + 1;
 		resetTank(pTank, pTank->level, 180.0);
 		pTank->fsm.states[TANK_DEAD_STATE].run = pre_runTankDeadState;
 	}
@@ -1575,7 +1587,7 @@ void resetTankArray(void)
     //Init the enemy tanks
 	for(int i = 2; i < 6; i++)
 	{
-		level1 = (rand() % 4) + 1;
+		level1 = (rand() % 3) + 1;
 		resetTank(&tank_array[i], level1, 180.0f);
 	}
 }

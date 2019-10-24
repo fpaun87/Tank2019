@@ -7,12 +7,12 @@
 #define MAX_BULLETS 40
 #define MAX_TANKS 6
 
-#define DEFAULT_TANK_SPEED 2u //pixels per update step
+#define DEFAULT_TANK_SPEED 1u //pixels per update step
 #define DEFAULT_FIRE_INTERVAL 1000 //MS
 #define DEFAULT_SPAWN_STATE_DURATION 4000 //MS
 #define DEFAULT_BLOCKED_STATE_DURATION 5000 //MS
 #define DEFAULT_IMMUNE_STATE_DURATION 10000 //MS
-#define DEFAULT_BULLET_SPEED 4u //pixels per update step
+#define DEFAULT_BULLET_SPEED 2u //pixels per update step
 #define MAX_SCORE_LABELS 10
 #define SCORE_LABEL_INTERVAL_MSEC 2000
 
