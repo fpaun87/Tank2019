@@ -127,9 +127,6 @@ void handleBonusStar(Tank *pTank, Bonus *pBonus)
 	pBonus->enabled = false;
 	pBonus->isVisible = false;
 
-	/* We return if we can't aquire the star, but don't 
-	 * invalidate the star. Maybe others want it
-	 */
 	if((pTank->level + 1) >  4)
 		return;
 
@@ -156,9 +153,6 @@ void handleBonusTank(Tank *pTank, Bonus *pBonus)
 	if(pTank->driver == CPU_DRIVER)
 		return;
 
-	/* We return if we can't aquire the tank, but don't 
-	 * invalidate the tank. Maybe the green tank wants it
-	 */
 	if(pTank->id == TANKID_PLAYER1)
 		cfg.p1.lives++;
 
@@ -187,14 +181,15 @@ void handleBonusHelmet(Tank *pTank, Bonus *pBonus)
 /* Raise the tank straight to level 4 */
 void handleBonusGun(Tank *pTank, Bonus *pBonus)
 {
-	/* We return if we can't aquire the star, but don't 
-	 * invalidate the star. Maybe others want it
-	 */
 	if((pTank->level + 1) >  4)
 		return;
 
 	pBonus->enabled = false;
 	pBonus->isVisible = false;
+
+	if((pTank->level + 1) >  4)
+		return;
+
 	pTank->level = 4;
 	pTank->hp = pTank->level;
 

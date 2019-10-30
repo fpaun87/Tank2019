@@ -43,8 +43,9 @@ int main(int argc, char* argv[])
         fsm.states[fsm.currentState].run();
         tf = SDL_GetTicks();
         if((tf - ti) < updateInterval)
-            SDL_Delay(tf - ti);
+            SDL_Delay(updateInterval - tf + ti);
     }
+
     //Cleanup
     appClose();
 	return 0;
