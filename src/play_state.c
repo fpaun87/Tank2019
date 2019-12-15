@@ -1398,7 +1398,7 @@ void tankReadAI(Tank *pTank)
 		}
 
 	}
-	if((rand() % 500) > 498)
+	if((rand() % 50) > 48)
 		pTank->fe = FE_FIRE;
 	else
 		pTank->fe = FE_NONE;
